@@ -1,2 +1,4 @@
 torch 
-whisper
+torchvision
+torchaudio
+openai-whisper
