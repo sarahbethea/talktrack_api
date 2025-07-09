@@ -2,7 +2,7 @@
 # python -m tests.test_diarization
 
 from pyannote.audio import Pipeline
-from audio_utils.diarization import diarize_audio
+from audio_utils.diarization import diarize_audio, seconds_to_mmss
 from dotenv import load_dotenv # Loads variables into the environment for access by os module 
 import torch
 import os
@@ -36,22 +36,29 @@ def test_diarization():
     # Run inference
     result = diarize_audio(model, audio_path)
 
-    print(f"Transcription completed in {result['inference_time']} seconds")
+    print(f"Inference completed in {result['inference_time']} seconds")
+    print(f"Raw segments: {len(result['raw_segments'])}")
+    print(f"Cleaned segments: {len(result['segments'])}")
 
     # Define output path for results 
     output_path = f"data/processed/test_diarization_{sample}.txt"
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(f"SPEAKER DIARIZATION RESULTS:\n")
+        f.write(f"Segments: {len(result['segments'])} (filtered from {len(result['raw_segments'])})\n\n")
         
         for segment in result["segments"]:
-            start = segment["start"]
-            end = segment["end"]
-            speaker = segment["speaker"]
-            f.write(f"{start}s - {end}s: {speaker}\n")
-
-    
-    print(f"Transcription written to {output_path}")
+            duration_seconds = segment["end"] - segment["start"]
+            duration_formatted = seconds_to_mmss(duration_seconds)
+        
+            if "start_formatted" in segment:
+                # Use formatted timestamps
+                f.write(f"{segment['start_formatted']} - {segment['end_formatted']} ({duration_formatted}): {segment['speaker']}\n")
+            else:
+                # Fallback to seconds
+                f.write(f"{segment['start']}s - {segment['end']}s ({duration_seconds:.2f}s): {segment['speaker']}\n")
+        
+    print(f"Output written to {output_path}")
 
 
 if __name__ == "__main__":
