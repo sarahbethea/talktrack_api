@@ -4,3 +4,4 @@ torchaudio
 openai-whisper
 faster-whisper
 pyannote.audio
+python-dotenv

@@ -1,7 +1,7 @@
 # run with command: 
 # python -m tests.test_transcribe
 
-from audio_utils.transcriber import transcribe_with_whisper, transcribe_with_faster_whisper
+from audio_utils.transcribe import transcribe_with_whisper, transcribe_with_faster_whisper
 import torch
 import whisper
 from faster_whisper import WhisperModel
@@ -63,12 +63,16 @@ def test_fw_transcription():
     # Pull values out of result
     inference_time = result["inference_time"]
     segments = result["segments"]
+    complete_text = result["complete_text"]
 
     # Define output path for results
     output_path = f"data/processed/test_transcript_{sample}_faster_whisper.txt"
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True) # NEED THIS LINE?
     with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"COMPLETE TEXT:\n\n")
+        f.write(complete_text)
+        f.write(f"\n\nSEGMENTS:\n\n")
         json.dump(result["segments"], f, indent=2, ensure_ascii=False)
 
     print(f"Transcription written to {output_path}")
@@ -76,5 +80,5 @@ def test_fw_transcription():
 
 
 if __name__ == "__main__":
-    test_w_transcription()
+    # test_w_transcription()
     test_fw_transcription()

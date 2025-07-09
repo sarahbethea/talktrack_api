@@ -3,7 +3,7 @@ import time
 
 def diarize_audio(model, file_path):
     """
-    Diarizes audio using pyannote.audio\
+    Diarizes audio using pyannote.audio
     
     Args:
         model (pyannote.audio): pretrained diarization model. 
@@ -12,10 +12,15 @@ def diarize_audio(model, file_path):
     Returns:
 
     """
+    print("\t*** Running inference with pyannote.audio ***")
+
     start_time = time.time()
+    # Run inference
     result = model(file_path)
     end_time = time.time()
     inference_time = end_time - start_time
+
+    print(f"\t*** Diarization complete. Inference time: {inference_time}s ***")
 
     # Extract raw segments
     raw_segments = []
@@ -108,6 +113,8 @@ def clean_diarization_output(segments, min_duration=3.0, max_gap=5.0, format_tim
     Returns:
         list: Fully cleaned segments
     """
+    print("\t\t*** Cleaning up diarization output ***")
+
     if not segments:
         return segments
     

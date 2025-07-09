@@ -38,12 +38,17 @@ def transcribe_with_faster_whisper(model, audio_path, word_timestamps=False):
         word_timestamps (bool): Whether to include word-level timing.
 
     Returns:
-        dict: Contains list of segments and total inference time.
+        dict: Contains list of segments, total inference time, and the complete text without timestamps. 
     """
+    print("\t*** Running inference with Faster Whisper ***")
+
     start_time = time.time()
+    # Run inference
     segments, _ = model.transcribe(audio_path, word_timestamps=word_timestamps)
     end_time = time.time()
     inference_time = round(end_time - start_time, 2)
+
+    print(f"\t*** Transcription complete. Inference time: {inference_time} ***")
 
     segment_list = []
     for segment in segments:
@@ -53,7 +58,15 @@ def transcribe_with_faster_whisper(model, audio_path, word_timestamps=False):
             "text": segment.text
         })
 
+    # Remove timestampts and merge segments to generate complete text. 
+    complete_text = " ".join([segment["text"].strip() for segment in segment_list])
+
     return {
         "segments": segment_list,
-        "inference_time": round(inference_time, 2)
+        "inference_time": round(inference_time, 2),
+        "complete_text": complete_text
     }
+
+
+
+
