@@ -1,7 +1,7 @@
 # Speaker diarization logic
 import time
 
-def diarization(model, file_path):
+def diarize_audio(model, file_path):
     """
     Diarizes audio using pyannote.audio\
     
@@ -19,13 +19,17 @@ def diarization(model, file_path):
 
     segments = []
 
-    for turn, _, speaker in diarization.itertracks(yield_label=True):
-        segments.append(f"start={turn.start:.1f}s stop={turn.end:.1f}s speaker_{speaker}")
+    for turn, _, speaker in result.itertracks(yield_label=True):
+        segments.append({
+            "start": round(turn.start, 2),
+            "end": round(turn.end, 2),
+            "speaker": speaker
+        })
 
 
     return {
         "segments": segments,
-        "inference_time": inference_time
+        "inference_time": round(inference_time, 2)
     }
 
     
@@ -33,4 +37,4 @@ def diarization(model, file_path):
 
 
 if __name__ == "__main__":
-    diarization()
+    pass
