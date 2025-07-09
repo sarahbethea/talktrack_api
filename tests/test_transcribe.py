@@ -1,12 +1,12 @@
+# run with command: 
+# python -m tests.test_transcribe
+
 from audio_utils.transcriber import transcribe_with_whisper, transcribe_with_faster_whisper
 import torch
 import whisper
 from faster_whisper import WhisperModel
 import json
 import os
-
-# run with command: 
-# python -m tests.test_transcribe
 
 sample = "sample_1_9m"
 audio_path = f"data/raw/{sample}.wav"
@@ -67,7 +67,7 @@ def test_fw_transcription():
     # Define output path for results
     output_path = f"data/processed/test_transcript_{sample}_faster_whisper.txt"
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True) # NEED THIS LINE?
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(result["segments"], f, indent=2, ensure_ascii=False)
 
