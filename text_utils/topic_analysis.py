@@ -44,7 +44,7 @@ class TopicAnalyzer:
 
     def extract_themes(self, transcript):
         """Extract key themes from interview transcript."""
-        prompt = self._themes_build_prompt(transcript)
+        prompt = self._build_prompt("extract_themes", {"transcript": transcript})
         
         # Generate with pipeline 
         start_time = time.time()
@@ -72,19 +72,23 @@ class TopicAnalyzer:
             "inference_time": inference_time
         }
     
+
     def classify_segment(self, segment_text, themes):
         """
         Classify single segment into one of provided themes and return a short summary
 
         Args:
             segment_text (str): segment text.
-            themes (???): list of themes.
+            themes (list): list of themes.
         
         Returns:
             ???
         """
 
-        prompt = self._build_classification_prompt(segment_text, themes)
+        prompt = self._build_prompt("classify_segment", {
+            "themes": themes, 
+            "segment_text": segment_text
+        })
 
         result = self.generator(
             prompt,
@@ -105,61 +109,6 @@ class TopicAnalyzer:
             return {"theme_title": "Uncategorized", "summary": "Could not parse model response."}
 
 
-    
-
-    def _themes_build_prompt(self, transcript):
-        # Same prompt as before
-        return f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-        You are an expert at analyzing interview content. Your task is to identify the major themes discussed in interview transcripts.<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-        Analyze this interview transcript and identify 3-5 major themes/topics discussed.
-
-        For each theme, provide:
-        1. A brief title (2-4 words)
-        2. A short description (1-2 sentences)  
-        3. 3-5 key phrases that indicate this theme
-
-        Respond only with the JSON array, and do not include any explanation or introduction.
-        Return your response as a JSON array in this exact format:
-        [
-        {{
-            "title": "Career Background",
-            "description": "Discussion about professional experience and work history",
-            "keywords": ["work", "job", "experience", "career", "company"]
-        }},
-        {{
-            "title": "Technical Skills", 
-            "description": "Conversation about programming languages and technical abilities",
-            "keywords": ["programming", "code", "development", "technical", "software"]
-        }}
-        ]
-
-        Transcript:
-        {transcript}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-        """
-    
-
-    def _build_classification_prompt(self, text, themes):
-        return f"""
-        Here are the interview themes:
-
-        {json.dumps(themes, indent=2)}
-
-        Classify the following interview segment into the most relevant theme, and summarize it in 1–2 sentences.
-
-        Segment:
-        {text}
-
-        Respond **only** in this JSON format:
-        {{
-        "theme_title": "...",
-        "summary": "..."
-        }}
-        """.strip()
-    
-    
     def _parse_themes(self, response_text):
         """Parse themes from model response."""
         try:
@@ -180,4 +129,69 @@ class TopicAnalyzer:
             print(f"Unexpected error parsing themes: {e}")
             return []
         
+
+    def _build_prompt(self, task: str, inputs: dict) -> str:
+        """
+        Build a prompt for a given task using input values.
+        
+        Args:
+            task (str): Either "extract_themes" or "classify_segment"
+            inputs (dict): Data required for the task (e.g. transcript, themes, segment_text)
+        
+        Returns:
+            str: A fully formatted prompt string
+        """
+        if task == "extract_themes":
+            return f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+            You are an expert at analyzing interview content. Your task is to identify the major themes discussed in interview transcripts.<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+            Analyze this interview transcript and identify 3-5 major themes/topics discussed.
+
+            For each theme, provide:
+            1. A brief title (2-4 words)
+            2. A short description (1-2 sentences)  
+            3. 3-5 key phrases that indicate this theme
+
+            Respond only with the JSON array, and do not include any explanation or introduction.
+            Return your response as a JSON array in this exact format:
+            [
+            {{
+                "title": "Career Background",
+                "description": "Discussion about professional experience and work history",
+                "keywords": ["work", "job", "experience", "career", "company"]
+            }},
+            {{
+                "title": "Technical Skills", 
+                "description": "Conversation about programming languages and technical abilities",
+                "keywords": ["programming", "code", "development", "technical", "software"]
+            }}
+            ]
+
+            Transcript:
+            {inputs["transcript"]}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+            """
+
+        elif task == "classify_segment":
+            return f"""
+            Here are the themes:
+
+            {json.dumps(inputs["themes"], indent=2)}
+
+            Classify the following segment into one of these themes and summarize it in 1-2 sentences.
+
+            Segment:
+            {inputs["segment_text"]}
+
+            Respond only with:
+            {{
+                "theme_title": "...",
+                "summary": "..."
+            }}
+            """.strip()
+
+        else:
+            raise ValueError(f"Unknown prompt task: {task}")
+            
 
