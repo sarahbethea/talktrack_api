@@ -1,1 +1,0 @@
-# Topic extraction logic

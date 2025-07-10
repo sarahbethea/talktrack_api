@@ -16,7 +16,7 @@ output_path = f"data/processed/test_audio_processing/test_complete_transcript_{s
 
 # Load environment variables
 load_dotenv()
-token = os.getenv("HUGGINGFACE_TOKEN")
+token = os.getenv("HF_TOKEN")
 
 # Device config
 device = "cuda" if torch.cuda.is_available() else "cpu"
