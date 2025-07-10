@@ -60,12 +60,47 @@ def create_complete_transcript_by_speaker(speaker_segments_with_text):
     
     for segment in speaker_segments_with_text:
         speaker_label = segment["speaker"]
+        start_time = segment["start_formatted"]
+        end_time = segment["end_formatted"]
         text = segment["text"]
         
         if text.strip():  # Only add if there's actual text
-            transcript_parts.append(f"[{speaker_label}]: {text}")
+            transcript_parts.append(f"[{speaker_label}][{start_time} - {end_time}]: {text}")
     
     return "\n\n".join(transcript_parts)
+
+
+def generate_json_segments(speaker_segments_with_text):
+    """
+    Generate structured JSON segments output from enhanced speaker segments.
+
+    Args:
+        speaker_segments_with_text (list): List of dicts with 'start', 'end', 'text', etc.
+
+    Returns:
+        List[Dict]: Structured list of segments ready for classification/annotation.
+    """
+    print("\t*** Generating structured JSON transcript ***")
+
+    json_segments = []
+
+    for i, segment in enumerate(speaker_segments_with_text):
+        seg = {
+            "segment_id": i,
+            "start": round(segment["start"], 2),
+            "end": round(segment["end"], 2),
+            "start_formatted": segment["start_formatted"],
+            "end_formatted": segment["end_formatted"],
+            "speaker": segment["speaker"],
+            "text": segment["text"],
+            "summary": None,
+            "theme_title": None,
+            "theme_id": None
+        }
+        json_segments.append(seg)
+    
+    return json_segments
+
 
 def process_audio(transcription_model, diarization_model, audio_path):
     print("\t*** Processing audio ***")
@@ -80,7 +115,13 @@ def process_audio(transcription_model, diarization_model, audio_path):
         diarization_result["segments"]  # These are your cleaned segments
     )
 
-    # Create clean transcript for LLM
-    complete_speaker_transcript = create_complete_transcript_by_speaker(speaker_segments)
+    # Create complete transcript
+    complete_transcript = create_complete_transcript_by_speaker(speaker_segments)
 
-    return complete_speaker_transcript
+    # Create JSON formatted transcript
+    json_segments = generate_json_segments(speaker_segments)
+
+    return {
+        "json_transcript": json_segments,
+        "complete_transcript": complete_transcript
+    }

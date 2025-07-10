@@ -7,12 +7,14 @@ from pyannote.audio import Pipeline
 from dotenv import load_dotenv
 import torch
 import os
+import json
 import time
 
 # Config
 sample = "sample_1_9m"
 audio_path = f"data/raw/{sample}.wav"
-output_path = f"data/processed/test_audio_processing/test_complete_transcript_{sample}.txt"
+json_output_path = f"data/processed/test_audio_processing/test_json_transcript_{sample}.txt"
+transcript_output_path = f"data/processed/test_audio_processing/complete_transcript_{sample}.txt"
 
 # Load environment variables
 load_dotenv()
@@ -32,15 +34,25 @@ if device == "cuda":
 
 # Process audio
 start_time = time.time()
-complete_transcript = process_audio(transcription_model, diarization_model, audio_path)
+result = process_audio(transcription_model, diarization_model, audio_path)
 end_time = time.time()
 print(f"\t*** Audio processing completed in {end_time - start_time}s ***")
 
-# Save output
-os.makedirs(os.path.dirname(output_path), exist_ok=True)
+json_transcript = result["json_transcript"]
+complete_transcript = result["complete_transcript"]
 
-with open(output_path, "w", encoding="utf-8") as f:
-    f.write("COMPLETE TRANSCRIPT\n\n")
+
+# Save json output
+os.makedirs(os.path.dirname(json_output_path), exist_ok=True)
+with open(json_output_path, "w", encoding="utf-8") as f:
+    f.write("COMPLETE JSON TRANSCRIPT\n\n")
+    json.dump(json_transcript, f, indent=2, ensure_ascii=False)
+
+print(f"\t*** JSON transcript saved to {json_output_path} ***")
+
+# Save complete transcript for LLM 
+os.makedirs(os.path.dirname(transcript_output_path), exist_ok=True)
+with open(transcript_output_path, "w", encoding="utf-8") as f:
     f.write(complete_transcript)
 
-print(f"\t*** Transcript saved to {output_path} ***")
+print(f"\t*** Complete transcript saved to {transcript_output_path} ***")

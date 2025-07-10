@@ -113,7 +113,7 @@ def clean_diarization_output(segments, min_duration=3.0, max_gap=5.0, format_tim
     Returns:
         list: Fully cleaned segments
     """
-    print("\t\t*** Cleaning up diarization output ***")
+    print("\t*** Cleaning up diarization output ***")
 
     if not segments:
         return segments

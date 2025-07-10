@@ -44,7 +44,7 @@ class TopicAnalyzer:
 
     def extract_themes(self, transcript):
         """Extract key themes from interview transcript."""
-        prompt = self._build_prompt(transcript)
+        prompt = self._themes_build_prompt(transcript)
         
         # Generate with pipeline 
         start_time = time.time()
@@ -72,8 +72,42 @@ class TopicAnalyzer:
             "inference_time": inference_time
         }
     
+    def classify_segment(self, segment_text, themes):
+        """
+        Classify single segment into one of provided themes and return a short summary
 
-    def _build_prompt(self, transcript):
+        Args:
+            segment_text (str): segment text.
+            themes (???): list of themes.
+        
+        Returns:
+            ???
+        """
+
+        prompt = self._build_classification_prompt(segment_text, themes)
+
+        result = self.generator(
+            prompt,
+            max_new_tokens=300,
+            temperature=0.3,
+            do_sample=True,
+            top_p=0.9,
+            return_full_text=False
+        )
+
+        # Parse JSON response (can add error handling)
+        response_text = result[0]["generated_text"]
+        try:
+            parsed = json.loads(response_text)
+            return parsed
+        except json.JSONDecodeError:
+            print(f"[ERROR] Failed to parse JSON:\n{response_text}")
+            return {"theme_title": "Uncategorized", "summary": "Could not parse model response."}
+
+
+    
+
+    def _themes_build_prompt(self, transcript):
         # Same prompt as before
         return f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
@@ -107,6 +141,25 @@ class TopicAnalyzer:
         """
     
 
+    def _build_classification_prompt(self, text, themes):
+        return f"""
+        Here are the interview themes:
+
+        {json.dumps(themes, indent=2)}
+
+        Classify the following interview segment into the most relevant theme, and summarize it in 1–2 sentences.
+
+        Segment:
+        {text}
+
+        Respond **only** in this JSON format:
+        {{
+        "theme_title": "...",
+        "summary": "..."
+        }}
+        """.strip()
+    
+    
     def _parse_themes(self, response_text):
         """Parse themes from model response."""
         try:
@@ -126,3 +179,5 @@ class TopicAnalyzer:
         except Exception as e:
             print(f"Unexpected error parsing themes: {e}")
             return []
+        
+
