@@ -2,6 +2,7 @@ data/
 models/
 .env
 notes.txt
+to_trash
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

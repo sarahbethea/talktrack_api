@@ -1,6 +1,37 @@
-from audio_utils.transcribe import transcribe_with_faster_whisper
-from audio_utils.diarization import diarize_audio
+from audio_utils.transcriber import Transcriber
+from audio_utils.diarizer import Diarizer
 
+def process_audio(transcription_model, diarization_model, audio_path):
+    """
+    Run transcription and diarization and format outputs for downstream use. 
+
+    """
+    print("\t*** Processing audio ***")
+
+    # Get transcription 
+    transcriber = Transcriber()
+    transcription_result = transcriber.transcribe(audio_path)
+
+    # Get diarization
+    diarizer = Diarizer()
+    diarization_result = diarizer.diarize_audio(audio_path)
+
+    # Combine them
+    speaker_segments = extract_text_for_speaker_segments(
+        transcription_result["segments"],
+        diarization_result["segments"]  # These are your cleaned segments
+    )
+
+    # Create complete transcript
+    complete_transcript = create_complete_transcript_by_speaker(speaker_segments)
+
+    # Create JSON formatted transcript
+    json_segments = generate_json_segments(speaker_segments)
+
+    return {
+        "json_transcript": json_segments,
+        "complete_transcript": complete_transcript
+    }
 
 def extract_text_for_speaker_segments(transcription_segments, diarization_segments):
     """
@@ -102,26 +133,3 @@ def generate_json_segments(speaker_segments_with_text):
     return json_segments
 
 
-def process_audio(transcription_model, diarization_model, audio_path):
-    print("\t*** Processing audio ***")
-
-    # Get results 
-    transcription_result = transcribe_with_faster_whisper(transcription_model, audio_path)
-    diarization_result = diarize_audio(diarization_model, audio_path)
-
-    # Combine them
-    speaker_segments = extract_text_for_speaker_segments(
-        transcription_result["segments"],
-        diarization_result["segments"]  # These are your cleaned segments
-    )
-
-    # Create complete transcript
-    complete_transcript = create_complete_transcript_by_speaker(speaker_segments)
-
-    # Create JSON formatted transcript
-    json_segments = generate_json_segments(speaker_segments)
-
-    return {
-        "json_transcript": json_segments,
-        "complete_transcript": complete_transcript
-    }

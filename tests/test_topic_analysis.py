@@ -1,4 +1,4 @@
-from text_utils.topic_analysis import TopicAnalyzer
+from text_utils.analyzer import TopicAnalyzer
 import os
 
 

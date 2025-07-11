@@ -8,17 +8,17 @@ import os
 load_dotenv()
 token = os.getenv("HF_TOKEN")
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
 class Diarizer:
     def __init__(self, model_name="pyannote/speaker-diarization-3.1", hf_token=token):
-        print(f"\t*** Loading diarization model: {model_name} ***")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"\t*** Loading diarization model: {model_name}")
         self.pipeline = Pipeline.from_pretrained(model_name, use_auth_token=token)
-        print("\t*** Model loaded successfully ***")
+        print("\t*** Model loaded successfully")
 
         # Move to GPU if available
-        if device == "cuda":
-            model = model.to(torch.device(device))
+        if self.device == "cuda":
+            self.pipeline = self.pipeline.to(torch.device(self.device))
 
 
     def diarize_audio(self, file_path):
@@ -32,7 +32,7 @@ class Diarizer:
         Returns:
 
         """
-        print("\t*** Running inference with pyannote.audio ***")
+        print("\t*** Running inference with pyannote.audio")
 
     
         # Run inference
@@ -41,16 +41,16 @@ class Diarizer:
         end_time = time.time()
         inference_time = end_time - start_time
 
-        print(f"\t*** Diarization complete. Inference time: {inference_time}s ***")
+        print(f"\t*** Diarization complete. Inference time: {inference_time}s")
 
 
         # Extract raw segments
         raw_segments = []
         for turn, _, speaker in result.itertracks(yield_label=True):
             raw_segments.append({
+                "speaker": speaker,
                 "start": round(turn.start, 2),
-                "end": round(turn.end, 2),
-                "speaker": speaker
+                "end": round(turn.end, 2)
             })
 
         # Clean up segments
@@ -62,6 +62,15 @@ class Diarizer:
             "inference_time": round(inference_time, 2)
         }
     
+
+    def _move_pipeline_to_cuda(self):
+        """
+        Move all internal models inside pyannote pipeline to GPU.
+        """
+        for name, model in self.pipeline.model.items():
+            self.pipeline.model[name] = model.to(torch.device("cuda"))
+        print("\t*** Pipeline models moved to CUDA ***")
+
 
     def _clean_diarization_output(self, segments, min_duration=3.0, max_gap=5.0, format_timestamps=True):
         """
@@ -76,7 +85,7 @@ class Diarizer:
         Returns:
             list: Fully cleaned segments
         """
-        print("\t*** Cleaning up diarization output ***")
+        print("\t*** Cleaning up diarization output")
 
         if not segments:
             return segments
@@ -136,6 +145,7 @@ class Diarizer:
         merged_segments.append(current_segment)
 
         return merged_segments
+    
     
     def _filter_short_segments(self, segments, min_duration=3.0):
         """
