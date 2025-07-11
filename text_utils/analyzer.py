@@ -39,11 +39,22 @@ class TopicAnalyzer:
             tokenizer=tokenizer
         )
 
-        print("\t*** Model loaded successfully ***")
+        print("\t*** Model loaded successfully")
     
 
-    def extract_themes(self, transcript):
-        """Extract key themes from interview transcript."""
+    def extract_themes(self, transcript) -> dict:
+        """
+        Extract key themes from interview transcript.
+
+        Args:
+            transcript (str)
+        
+        Returns:
+            dict: A dictionary with the following fields:
+            - "parsed_themes" (str): Themes in an easy to read format.
+            - "raw_response" (str): Themes in JSON format.  
+            - "inference_time" (float)
+        """
         prompt = self._build_prompt("extract_themes", {"transcript": transcript})
         
         # Generate with pipeline 
@@ -60,7 +71,7 @@ class TopicAnalyzer:
         end_time = time.time()
         inference_time = end_time - start_time
 
-        print(f"\t*** Inference completed in {inference_time}s ***")
+        print(f"\t*** Inference completed in {inference_time}s")
         
         # Extract generated text
         response_text = result[0]['generated_text']
@@ -73,18 +84,25 @@ class TopicAnalyzer:
         }
     
 
-    def classify_segment(self, segment_text, themes):
+    def classify_segment(self, segment_text: str, themes: list[dict]) -> dict:
         """
-        Classify single segment into one of provided themes and return a short summary
+        Classify a single transcript segment into one of the provided themes 
+        and generate a short summary of its content.
+
+        This method uses the loaded LLaMA model to evaluate the segment's 
+        content and return both a classification (based on the provided themes) 
+        and a 1-2 sentence summary suitable for annotation or labeling.
 
         Args:
-            segment_text (str): segment text.
-            themes (list): list of themes.
-        
-        Returns:
-            ???
-        """
+            segment_text (str): The raw text of a single segment (e.g., from one speaker block).
+            themes (list of dict): A list of themes previously extracted from the full transcript.
+                Each theme dict should include at least a "title" and "description".
 
+        Returns:
+            dict: A dictionary with the following fields:
+                - "theme_title" (str): The best-matching theme for this segment.
+                - "summary" (str): A short description or summary of what is said in the segment.
+        """
         prompt = self._build_prompt("classify_segment", {
             "themes": themes, 
             "segment_text": segment_text
