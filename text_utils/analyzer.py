@@ -164,20 +164,27 @@ class TopicAnalyzer:
         # Build prompts for all segments
         prompts = [make_prompt(segment["text"]) for segment in segments]
 
+        start_time = time.time()
+
         # Process themes in batches
         for i in range(0, len(prompts), batch_size):
             batch_prompts = prompts[i:i + batch_size]
             batch_segments = segments[i:i + batch_size]
 
-            results = self.generator(
-                batch_prompts,
-                max_new_tokens=300,
-                temperature=0.3,
-                do_sample=True,
-                top_p=0.9,
-                return_full_text=False
-            )
+            batch_start = time.time()
+            try:
+                results = self.generator(
+                    batch_prompts,
+                    max_new_tokens=300,
+                    temperature=0.3,
+                    do_sample=True,
+                    top_p=0.9,
+                    return_full_text=False
+                )
+            except Exception as e:
+                print(f"[ERROR] Failed to run batch {i // batch_size}: {e}")
 
+            # Loop through batch results
             for j, result_list in enumerate(results):
                 result = result_list[0]
                 raw = result["generated_text"]
@@ -200,6 +207,13 @@ class TopicAnalyzer:
                 segment["theme_id"] = theme_id
 
                 print(f"\t*** [{i + j + 1}/{len(segments)}] Theme: {matched_title} (ID: {theme_id})")
+            
+        
+            batch_duration = round(time.time() - batch_start, 2)
+            print(f"\t*** Batch {i // batch_size + 1} processed in {batch_duration}s")
+
+        total_duration = round(time.time() - start_time, 2)
+        print(f"\t*** All segments classified in {total_duration}s")
 
         return segments
 

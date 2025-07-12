@@ -13,7 +13,7 @@ output_path = f"data/processed/test_classification/classified_segments_{sample}.
 
 load_dotenv()
 
-def test_classification():
+def test_classification(benchmark_batch_size=False):
     # Load themes from JSON
     try:
         with open(themes_path, "r", encoding="utf-8") as f:
@@ -33,24 +33,23 @@ def test_classification():
     print("\t*** Loading TopicAnalyzer...")
     analyzer = TopicAnalyzer()
 
-    print("\t*** Classifying each segment")
+    if benchmark_batch_size:
+        for bsize in [1, 4, 8, 16]:
+            print(f"\n\t=== Benchmarking batch_size={bsize} ===")
+            analyzer.classify_all_segments(segments, themes, batch_size=bsize) 
+    else:
+        print("\t*** Classifying each segment")
 
-    # # Classify each segment
-    # for i, segment in enumerate(segments):
-    #     result = analyzer.classify_segment(segment["text"], themes)
-    #     segment["theme_title"] = result.get("title_theme", "Uncategorized")
-    #     segment["summary"] = result.get("summary", "")
+        segments = analyzer.classify_all_segments(segments, themes)
+        
+        # Save output 
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(segments, f, indent=2, ensure_ascii=False)
+        
+        print(f"\t*** Classified segments saved to {output_path}")
 
-    #     print(f"\t[{i+1}/{len(segments)}] Theme: {segment["theme_title"]}")
 
-    segments = analyzer.classify_all_segments(segments, themes)
-    
-    # Save output 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(segments, f, indent=2, ensure_ascii=False)
-    
-    print(f"\t*** Classified segments saved to {output_path}")
 
 
 if __name__ == "__main__":
