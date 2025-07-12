@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 import time
 import torch
+import textwrap
 import os
 import re #regex module
 
@@ -69,17 +70,28 @@ class TopicAnalyzer:
             return_full_text=False  # Only return the generated part
         )
         end_time = time.time()
-        inference_time = end_time - start_time
+        inference_time = round(end_time - start_time, 2)
 
         print(f"\t*** Inference completed in {inference_time}s")
         
         # Extract generated text
-        response_text = result[0]['generated_text']
+        raw_response = result[0]['generated_text']
         
         # Parse themes
+        parsed_themes = self._parse_themes(raw_response)
+
+        # Format JSON string and add theme ID
+        try:
+            json_themes = json.loads(raw_response)
+            for idx, theme in enumerate(json_themes):
+                theme["theme_id"] = idx
+        except json.JSONDecodeError as e:
+            print(f"[ERROR] Could not parse raw_response: {e}")
+            json_themes = []
+
         return {
-            "parsed_themes": self._parse_themes(response_text),
-            "raw_response": response_text,
+            "parsed_themes": parsed_themes,
+            "json_themes": json_themes,
             "inference_time": inference_time
         }
     
@@ -125,6 +137,71 @@ class TopicAnalyzer:
         except json.JSONDecodeError:
             print(f"[ERROR] Failed to parse JSON:\n{response_text}")
             return {"theme_title": "Uncategorized", "summary": "Could not parse model response."}
+        
+
+
+    def classify_all_segments(self, segments: list[dict], themes: list[dict], batch_size=8) -> list[dict]:
+        """
+        Classify and summarize a list of segments based on provided themes. 
+
+        Args:
+            segments (list of dict): Segments to classify. Each must include a "text" field.
+            themes (list of dict): List of themes extracted from the full transcript. 
+            batch_size (int): Number of segments to classify in each batch. 
+        
+        Returns:
+            list of dict: The same segments, with added fields for "theme_title" and "summary".
+        """
+        print(f"\t*** Classifying {len(segments)} segments in batches of {batch_size}")
+
+        # Define function to make prompt for each segment
+        def make_prompt(text):
+            return self._build_prompt("classify_segment", {
+                "themes": themes,
+                "segment_text": text
+            })
+        
+        # Build prompts for all segments
+        prompts = [make_prompt(segment["text"]) for segment in segments]
+
+        # Process themes in batches
+        for i in range(0, len(prompts), batch_size):
+            batch_prompts = prompts[i:i + batch_size]
+            batch_segments = segments[i:i + batch_size]
+
+            results = self.generator(
+                batch_prompts,
+                max_new_tokens=300,
+                temperature=0.3,
+                do_sample=True,
+                top_p=0.9,
+                return_full_text=False
+            )
+
+            for j, result_list in enumerate(results):
+                result = result_list[0]
+                raw = result["generated_text"]
+                try:
+                    parsed = json.loads(raw)
+                    matched_title = parsed.get("theme_title", "Uncategorized")
+                    summary = parsed.get("summary", "")
+                except Exception:
+                    matched_title = "Uncategorized"
+                    summary = "[Could not parse model output]"
+                
+                # Get theme_id
+                matched_theme = next((t for t in themes if t["title"] == matched_title), None)
+                theme_id = matched_theme["theme_id"] if matched_theme else -1 # -1 means unmatched
+
+                # Update segment
+                segment = batch_segments[j]
+                segment["theme_title"] = matched_title
+                segment["summary"] = summary
+                segment["theme_id"] = theme_id
+
+                print(f"\t*** [{i + j + 1}/{len(segments)}] Theme: {matched_title} (ID: {theme_id})")
+
+        return segments
 
 
     def _parse_themes(self, response_text):
@@ -192,22 +269,28 @@ class TopicAnalyzer:
             """
 
         elif task == "classify_segment":
-            return f"""
-            Here are the themes:
+            return textwrap.dedent(f"""\
+                <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+                You are an expert at analyzing interview content. Your task is to classify this segment of text into one of the provided themes, and then summarize the segment.
+                <|eot_id|><|start_header_id|>user<|end_header_id|>
 
-            {json.dumps(inputs["themes"], indent=2)}
+                Here are the themes:
 
-            Classify the following segment into one of these themes and summarize it in 1-2 sentences.
+                {json.dumps(inputs["themes"], indent=2)}
 
-            Segment:
-            {inputs["segment_text"]}
+                Classify the following segment into one of these themes and then summarize it in 1–2 sentences. Do not modify the theme title.
 
-            Respond only with:
-            {{
-                "theme_title": "...",
-                "summary": "..."
-            }}
-            """.strip()
+                Segment:
+                {inputs["segment_text"]}
+
+                Respond only with a single JSON object, and do not include any explanation or introduction.
+                Return your response in this exact format:
+                {{
+                "theme_title": "Career Background",
+                "summary": "Discussion about professional experience and work history"
+                }}
+                <|eot_id|><|start_header_id|>assistant<|end_header_id|>
+                """)
 
         else:
             raise ValueError(f"Unknown prompt task: {task}")

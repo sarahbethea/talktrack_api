@@ -35,13 +35,15 @@ def test_classification():
 
     print("\t*** Classifying each segment")
 
-    # Classify each segment
-    for i, segment in enumerate(segments):
-        result = analyzer.classify_segment(segment["text"], themes)
-        segment["theme_title"] = result.get("title_theme", "Uncategorized")
-        segment["summary"] = result.get("summary", "")
+    # # Classify each segment
+    # for i, segment in enumerate(segments):
+    #     result = analyzer.classify_segment(segment["text"], themes)
+    #     segment["theme_title"] = result.get("title_theme", "Uncategorized")
+    #     segment["summary"] = result.get("summary", "")
 
-        print(f"\t[{i+1}/{len(segments)}] Theme: {segment["theme_title"]}")
+    #     print(f"\t[{i+1}/{len(segments)}] Theme: {segment["theme_title"]}")
+
+    segments = analyzer.classify_all_segments(segments, themes)
     
     # Save output 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

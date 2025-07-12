@@ -41,7 +41,7 @@ def test_topic_analysis():
 
 
     with open(json_output_path, "w", encoding="utf-8") as f:
-        json.dump(json.loads(result["raw_response"]), f, indent=2)
+        json.dump(result["json_themes"], f, indent=2)
 
     print(f"\t*** Results written to: {json_output_path}")
 
