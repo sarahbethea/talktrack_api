@@ -48,8 +48,12 @@ def test_classification(benchmark_batch_size=False):
             json.dump(segments, f, indent=2, ensure_ascii=False)
         
         print(f"\t*** Classified segments saved to {output_path}")
-
-
+    
+    # Save failed segments for review
+    if analyzer.failed_segments:
+        with open("data/processed/test_classification/failed_segments.json", "w", encoding="utf-8") as f:
+            json.dump(analyzer.failed_segments, f, indent=2, ensure_ascii=False)
+        print(f"❌ Saved {len(analyzer.failed_segments)} failed segments to failed_segments.json")
 
 
 if __name__ == "__main__":

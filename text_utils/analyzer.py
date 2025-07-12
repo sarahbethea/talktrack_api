@@ -8,6 +8,7 @@ import textwrap
 import os
 import re #regex module
 
+
 # Load environment variables
 load_dotenv()
 token = os.getenv("HF_TOKEN")
@@ -154,6 +155,17 @@ class TopicAnalyzer:
         """
         print(f"\t*** Classifying {len(segments)} segments in batches of {batch_size}")
 
+        # Initialize stats dict and failed segments list
+        stats = {
+            "total": len(segments),
+            "successful": 0,
+            "retried": 0,
+            "failed": 0,
+            "batch_failures": 0
+        }
+
+        failed_segments = []
+
         # Define function to make prompt for each segment
         def make_prompt(text):
             return self._build_prompt("classify_segment", {
@@ -183,37 +195,62 @@ class TopicAnalyzer:
                 )
             except Exception as e:
                 print(f"[ERROR] Failed to run batch {i // batch_size}: {e}")
+                stats["batch_failures"] += 1
+                failed_segments.extend(batch_segments)
+                continue
 
             # Loop through batch results
             for j, result_list in enumerate(results):
+                segment = batch_segments[j]
                 result = result_list[0]
                 raw = result["generated_text"]
+
                 try:
                     parsed = json.loads(raw)
                     matched_title = parsed.get("theme_title", "Uncategorized")
                     summary = parsed.get("summary", "")
+                    stats["successful"] += 1
                 except Exception:
-                    matched_title = "Uncategorized"
-                    summary = "[Could not parse model output]"
+                    print(f"\t*** [!] Parsing failed for segment {i+j}, retrying individually")
+                    stats["retried"] += 1
+
+                    # If parsing fails, call classify_segment() for that segment
+                    retry_result = self.classify_segment(segment["text"], themes)
+                    matched_title = retry_result.get("theme_title", "Uncategorized")
+                    summary = retry_result.get("summary", "[Retry failed]")
+
+                    if matched_title == "Uncategorized":
+                        stats["failed"] += 1
+                        failed_segments.append(segment)
                 
                 # Get theme_id
                 matched_theme = next((t for t in themes if t["title"] == matched_title), None)
                 theme_id = matched_theme["theme_id"] if matched_theme else -1 # -1 means unmatched
 
                 # Update segment
-                segment = batch_segments[j]
                 segment["theme_title"] = matched_title
                 segment["summary"] = summary
                 segment["theme_id"] = theme_id
 
                 print(f"\t*** [{i + j + 1}/{len(segments)}] Theme: {matched_title} (ID: {theme_id})")
             
-        
             batch_duration = round(time.time() - batch_start, 2)
             print(f"\t*** Batch {i // batch_size + 1} processed in {batch_duration}s")
 
         total_duration = round(time.time() - start_time, 2)
         print(f"\t*** All segments classified in {total_duration}s")
+
+        # Print stats summary
+        print("\t*** Classification Summary:")
+        print(f"  Total segments       : {stats['total']}")
+        print(f"  Parsed successfully  : {stats['successful']}")
+        print(f"  Retried              : {stats['retried']}")
+        print(f"  Failed after retry   : {stats['failed']}")
+        print(f"  Batch failures       : {stats['batch_failures']}")
+        print(f"  Total time           : {total_duration}s")
+
+        self.last_classification_stats = stats
+        self.failed_segments = failed_segments
 
         return segments
 
