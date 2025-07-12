@@ -21,7 +21,7 @@ class Diarizer:
             self.pipeline = self.pipeline.to(torch.device(self.device))
 
 
-    def diarize_audio(self, file_path):
+    def diarize_audio(self, file_path: str) -> dict:
         """
         Diarizes audio using pyannote.audio
         
@@ -69,10 +69,16 @@ class Diarizer:
         """
         for name, model in self.pipeline.model.items():
             self.pipeline.model[name] = model.to(torch.device("cuda"))
-        print("\t*** Pipeline models moved to CUDA ***")
+        print("\t*** Pipeline models moved to CUDA")
 
 
-    def _clean_diarization_output(self, segments, min_duration=3.0, max_gap=5.0, format_timestamps=True):
+    def _clean_diarization_output(
+            self, 
+            segments: list, 
+            min_duration: float = 3.0, 
+            max_gap: float = 5.0, 
+            format_timestamps: bool = True
+    ) -> list[dict]:
         """
         Clean up diarization segments with multiple passes of merging and filtering.
         
@@ -83,7 +89,7 @@ class Diarizer:
             format_timestamps (bool): Whether to format timestamps as MM:SS
         
         Returns:
-            list: Fully cleaned segments
+            list[dict]: Fully cleaned segments
         """
         print("\t*** Cleaning up diarization output")
 
@@ -111,17 +117,17 @@ class Diarizer:
         return final_segments
     
 
-    def _merge_consecutive_speakers(self, segments, max_gap=5.0):
+    def _merge_consecutive_speakers(self, segments: list, max_gap: float = 5.0) -> list[dict]:
         """
         Merge consecutive segments from the same speaker.
         
         Args:
-            segments (list): Segments sorted by start time
+            segments (list[dict]): Segments sorted by start time
             max_gap (float): Maximum gap between segments to merge (seconds).
                 Gaps of max_gap seconds or less between the same speaker get merged. 
         
         Returns:
-            list: Segments with consecutive same-speaker segments merged
+            list[dict]: Segments with consecutive same-speaker segments merged
         """
         if not segments:
             return segments
@@ -147,7 +153,7 @@ class Diarizer:
         return merged_segments
     
     
-    def _filter_short_segments(self, segments, min_duration=3.0):
+    def _filter_short_segments(self, segments: list[dict], min_duration: float = 3.0) -> list[dict]:
         """
         Remove segments shorter than minimum duration.
         
@@ -157,7 +163,7 @@ class Diarizer:
                 Segments shorter than min_duration get filtered out. 
         
         Returns:
-            list: Segments with short ones filtered out
+            list[dict]: Segments with short ones filtered out
         """
         filtered_segments = []
         for segment in segments:
@@ -170,7 +176,7 @@ class Diarizer:
         return filtered_segments
 
 
-    def _seconds_to_mmss(self, seconds):
+    def _seconds_to_mmss(self, seconds: float) -> str:
         """
         Convert seconds to MM:SS format
 

@@ -255,7 +255,7 @@ class TopicAnalyzer:
         return segments
 
 
-    def _parse_themes(self, response_text):
+    def _parse_themes(self, response_text: str):
         """Parse themes from model response."""
         try:
             # Look for JSON array in the response

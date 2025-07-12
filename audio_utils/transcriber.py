@@ -12,7 +12,7 @@ class Transcriber:
         print("\t*** Model loaded successfully")
 
     
-    def transcribe(self, audio_path, word_timestamps=False):
+    def transcribe(self, audio_path: str, word_timestamps=False) -> dict:
         print(f"\t*** Transcribing: {audio_path}")
         start_time = time.time()
         segments, _ = self.model.transcribe(audio_path, word_timestamps=word_timestamps)

@@ -19,7 +19,7 @@ def test_classification(benchmark_batch_size=False):
         with open(themes_path, "r", encoding="utf-8") as f:
             themes = json.load(f)
     except Exception as e:
-        print(f"ERROR could not load themes: {e}")
+        print(f"\t*** [ERROR] could not load themes: {e}")
         return
 
     # Load segments from JSON
@@ -27,7 +27,7 @@ def test_classification(benchmark_batch_size=False):
         with open(segments_path, "r", encoding="utf-8") as f:
             segments = json.load(f)
     except Exception as e:
-        print(f"ERROR could not load segments: {e}")
+        print(f"\t*** [ERROR] could not load segments: {e}")
     
     # Initialize LLama model
     print("\t*** Loading TopicAnalyzer...")
@@ -53,7 +53,7 @@ def test_classification(benchmark_batch_size=False):
     if analyzer.failed_segments:
         with open("data/processed/test_classification/failed_segments.json", "w", encoding="utf-8") as f:
             json.dump(analyzer.failed_segments, f, indent=2, ensure_ascii=False)
-        print(f"❌ Saved {len(analyzer.failed_segments)} failed segments to failed_segments.json")
+        print(f"\t*** Saved {len(analyzer.failed_segments)} failed segments to failed_segments.json")
 
 
 if __name__ == "__main__":
