@@ -31,7 +31,7 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str)
     diarization_result = diarizer.diarize_audio(audio_path)
 
     # Combine them
-    speaker_segments = extract_text_for_speaker_segments(
+    speaker_segments = build_speaker_segments(
         transcription_result["segments"],
         diarization_result["segments"]  # These are your cleaned segments
     )
@@ -47,7 +47,7 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str)
         "complete_transcript": complete_transcript
     }
 
-def build_speaker_segments_from_words(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
+def build_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
     """
     Assign individual words (with timestamps) to the correct speaker segment,
     then build clean speaker-labeled blocks of text.
@@ -168,41 +168,6 @@ def compute_overlap(start1, end1, start2, end2):
     overlap_start = max(start1, start2) # take later of two start times
     overlap_end = min(end1, end2) # take earlier of two end times 
     return max(0.0, overlap_end - overlap_start) # Return difference between start and end, use max to avoid negative values 
-
-
-
-    # speaker_segments_with_text = []
-    
-    # for diar_segment in diarization_segments:
-    #     # Find all transcript segments that overlap with this speaker segment
-    #     overlapping_text = []
-        
-    #     for transcript_segment in transcription_segments:
-    #         # Check if transcript segment overlaps with speaker segment
-    #         if (transcript_segment["start"] < diar_segment["end"] and 
-    #             transcript_segment["end"] > diar_segment["start"]):
-    #             overlapping_text.append(transcript_segment["text"].strip())
-        
-    #     # Combine all text for this speaker segment
-    #     complete_text = " ".join(overlapping_text)
-        
-    #     # Create enhanced segment
-    #     enhanced_segment = {
-    #         "start": diar_segment["start"],
-    #         "end": diar_segment["end"],
-    #         "speaker": diar_segment["speaker"],
-    #         "text": complete_text,
-    #         "duration": round(diar_segment["end"] - diar_segment["start"], 2)
-    #     }
-        
-    #     # Add formatted timestamps if they exist
-    #     if "start_formatted" in diar_segment:
-    #         enhanced_segment["start_formatted"] = diar_segment["start_formatted"]
-    #         enhanced_segment["end_formatted"] = diar_segment["end_formatted"]
-        
-    #     speaker_segments_with_text.append(enhanced_segment)
-    
-    # return speaker_segments_with_text
 
 
 def create_complete_transcript_by_speaker(speaker_segments_with_text: list[dict]) -> str:

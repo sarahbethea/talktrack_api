@@ -59,6 +59,6 @@ def test_classification(benchmark_batch_size=False):
 
 
 if __name__ == "__main__":
-    test_classification()
+    test_classification(benchmark_batch_size=False)
 
 
