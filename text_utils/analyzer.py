@@ -86,10 +86,17 @@ class TopicAnalyzer:
             json_themes = json.loads(raw_response)
             for idx, theme in enumerate(json_themes):
                 theme["theme_id"] = idx
+            # Append themes with "None" option
+            json_themes.append({
+                "title": "None",
+                "description": "No relevant speech or theme; includes silence, background noise, or unintelligible audio.",
+                "keywords": ["silence", "noise", "background", "empty", "unclear"],
+                "theme_id": -1
+            })
         except json.JSONDecodeError as e:
             print(f"[ERROR] Could not parse raw_response: {e}")
-            json_themes = []
-
+            json_themes = [] 
+                
         return {
             "parsed_themes": parsed_themes,
             "json_themes": json_themes,
@@ -335,6 +342,14 @@ class TopicAnalyzer:
                 {inputs["segment_text"]}
 
                 Respond only with a single JSON object, and do not include any explanation or introduction.
+
+                If the segment contains no meaningful speech, only background noise, or is unintelligible or silent, classify it as:
+                {
+                "theme_title": "None",
+                "summary": "No relevant speech content"
+                }
+
+
                 Return your response in this exact format:
                 {{
                 "theme_title": "Career Background",
