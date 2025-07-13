@@ -353,7 +353,15 @@ class TopicAnalyzer:
 
                 {json.dumps(inputs["themes"], indent=2)}
 
-                Classify the following segment into one of these themes and then summarize it in 1-2 sentences. Do not modify the theme title.
+                Classify the following segment into one of the provided themes based on its content and speaker.
+
+                - If the segment appears to be spoken by the interviewer, classify it as "Interviewer", even if it includes introductory or transitional phrasing. For example:
+                {{
+                    "theme_title": "Interviewer",
+                    "summary": "The interviewer asks the participant to introduce themselves."
+                }}
+                - Only classify a segment as "Introduction" if the **interviewee** is introducing themselves.
+                - Do not modify the theme titles.
 
                 Segment:
                 {inputs["segment_text"]}
@@ -365,7 +373,6 @@ class TopicAnalyzer:
                 "theme_title": "None",
                 "summary": "No relevant speech content"
                 }}
-
 
                 Return your response in this exact format:
                 {{

@@ -7,6 +7,7 @@ from pyannote.audio import Pipeline
 from audio_utils.transcriber import Transcriber
 from audio_utils.diarizer import Diarizer
 from dotenv import load_dotenv
+from datetime import datetime
 import torch
 import os
 import json
@@ -14,9 +15,10 @@ import time
 
 # Config
 sample = "sample_1_9m"
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 audio_path = f"data/raw/{sample}.wav"
-json_output_path = f"data/processed/test_audio_processing/test_json_transcript_{sample}.json"
-transcript_output_path = f"data/processed/test_audio_processing/complete_transcript_{sample}.txt"
+json_output_path = f"data/processed/test_audio_processing/test_json_transcript_{sample}_{timestamp}.json"
+transcript_output_path = f"data/processed/test_audio_processing/complete_transcript_{sample}_{timestamp}.txt"
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +26,7 @@ token = os.getenv("HF_TOKEN")
 
 def test_audio_processing():
     # Load models
-    transcriber = Transcriber(model_size="small") 
+    transcriber = Transcriber(model_size="medium") 
     diarizer = Diarizer(hf_token=token)
 
     # Process audio

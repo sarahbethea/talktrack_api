@@ -3,13 +3,15 @@
 
 from text_utils.analyzer import TopicAnalyzer
 from dotenv import load_dotenv
+from datetime import datetime
 import os
 import json
 
 sample = "sample_1_9m"
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 themes_path = "data/processed/test_topic_analysis/generated_themes_sample_1_9m.json"
 segments_path = "data/processed/test_audio_processing/test_json_transcript_sample_1_9m.json"
-output_path = f"data/processed/test_classification/classified_segments_{sample}.json"
+output_path = f"data/processed/test_classification/classified_segments_{sample}_{timestamp}.json"
 
 load_dotenv()
 

@@ -1,13 +1,15 @@
 from text_utils.analyzer import TopicAnalyzer
 import os
 import json
+from datetime import datetime
 
 
 def test_topic_analysis():
     sample_name = "sample_1_9m"
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     transcript_path = "data/processed/test_audio_processing/complete_transcript_sample_1_9m.txt"
-    parsed_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}.txt"
-    json_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}.json"
+    parsed_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}_{timestamp}.txt"
+    json_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}_{timestamp}.json"
         
     # Read the transcript file
     try:

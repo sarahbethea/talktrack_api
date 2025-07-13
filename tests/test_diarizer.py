@@ -3,14 +3,16 @@
 
 from audio_utils.diarizer import Diarizer
 from dotenv import load_dotenv
+from datetime import datetime
 import json
 import time
 import os
 
 # Config
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 sample = "sample_1_9m"
 audio_path = f"data/raw/{sample}.wav"
-output_path = f"data/processed/test_diarization/test_diarizer_output_{sample}.json"
+output_path = f"data/processed/test_diarization/test_diarizer_output_{sample}_{timestamp}.json"
 
 # Load environment variables
 load_dotenv()
