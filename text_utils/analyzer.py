@@ -1,6 +1,7 @@
 # Topic extraction logic
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 from dotenv import load_dotenv
+from text_utils.default_themes import get_default_themes
 import json
 import time
 import torch
@@ -46,7 +47,8 @@ class TopicAnalyzer:
 
     def extract_themes(self, transcript) -> dict:
         """
-        Extract key themes from interview transcript.
+        Extract key themes from interview transcript and append
+        default themes. 
 
         Args:
             transcript (str)
@@ -81,18 +83,13 @@ class TopicAnalyzer:
         # Parse themes
         parsed_themes = self._parse_themes(raw_response)
 
-        # Format JSON string and add theme ID
+        # Format JSON string and add theme ID and default themes
         try:
             json_themes = json.loads(raw_response)
             for idx, theme in enumerate(json_themes):
                 theme["theme_id"] = idx
-            # Append themes with "None" option
-            json_themes.append({
-                "title": "None",
-                "description": "No relevant speech or theme; includes silence, background noise, or unintelligible audio.",
-                "keywords": ["silence", "noise", "background", "empty", "unclear"],
-                "theme_id": -1
-            })
+            # Append themes with default options
+            json_themes.extend(get_default_themes())
         except json.JSONDecodeError as e:
             print(f"[ERROR] Could not parse raw_response: {e}")
             json_themes = [] 
@@ -162,7 +159,7 @@ class TopicAnalyzer:
         """
         print(f"\t*** Classifying {len(segments)} segments in batches of {batch_size}")
 
-        # Initialize stats dict and failed segments list
+        # Initialize stats dict and failed segments list for tracking
         stats = {
             "total": len(segments),
             "successful": 0,
@@ -180,15 +177,29 @@ class TopicAnalyzer:
                 "segment_text": text
             })
         
-        # Build prompts for all segments
-        prompts = [make_prompt(segment["text"]) for segment in segments]
+        # Build prompts for all non empty segments
+        segments_to_classify = []
+        prompts = []
+
+        for segment in segments:
+            # If segment is empty, give it "None" theme
+            if self._is_empty_segment(segment["text"]):
+                segment["theme_title"] = "None",
+                segment["summary"] = "No relevant speech content.",
+                segment["theme_id"] = -1
+                continue
+
+            # Add prompts for non empty segments
+            prompt = make_prompt(segment["text"])
+            prompts.append(prompt)
+            segments_to_classify.append(segment)
 
         start_time = time.time()
 
         # Process themes in batches
-        for i in range(0, len(prompts), batch_size):
+        for i in range(0, len(segments_to_classify), batch_size):
             batch_prompts = prompts[i:i + batch_size]
-            batch_segments = segments[i:i + batch_size]
+            batch_segments = segments_to_classify[i:i + batch_size]
 
             batch_start = time.time()
             try:
@@ -283,6 +294,12 @@ class TopicAnalyzer:
             return []
         
 
+    def _is_empty_segment(self, text:str) -> bool:
+        stripped = text.strip().lower()
+        # if stripped text is empty or only punctuation, return true
+        return not stripped or re.fullmatch(r"[.,!?()\[\]\"'\s]+", stripped)
+    
+
     def _build_prompt(self, task: str, inputs: dict) -> str:
         """
         Build a prompt for a given task using input values.
@@ -336,7 +353,7 @@ class TopicAnalyzer:
 
                 {json.dumps(inputs["themes"], indent=2)}
 
-                Classify the following segment into one of these themes and then summarize it in 1–2 sentences. Do not modify the theme title.
+                Classify the following segment into one of these themes and then summarize it in 1-2 sentences. Do not modify the theme title.
 
                 Segment:
                 {inputs["segment_text"]}
@@ -344,10 +361,10 @@ class TopicAnalyzer:
                 Respond only with a single JSON object, and do not include any explanation or introduction.
 
                 If the segment contains no meaningful speech, only background noise, or is unintelligible or silent, classify it as:
-                {
+                {{
                 "theme_title": "None",
                 "summary": "No relevant speech content"
-                }
+                }}
 
 
                 Return your response in this exact format:
