@@ -1,0 +1,62 @@
+# Run with:
+# python -m tests.test_classification
+
+from text_utils.analyzer import TopicAnalyzer
+from dotenv import load_dotenv
+import os
+import json
+
+sample = "sample_1_9m"
+themes_path = "data/processed/test_topic_analysis/generated_themes_sample_1_9m.json"
+segments_path = "data/processed/test_audio_processing/test_json_transcript_sample_1_9m.json"
+output_path = f"data/processed/test_classification/classified_segments_{sample}.json"
+
+load_dotenv()
+
+def test_classification(benchmark_batch_size=False):
+    # Load themes from JSON
+    try:
+        with open(themes_path, "r", encoding="utf-8") as f:
+            themes = json.load(f)
+    except Exception as e:
+        print(f"\t*** [ERROR] could not load themes: {e}")
+        return
+
+    # Load segments from JSON
+    try:
+        with open(segments_path, "r", encoding="utf-8") as f:
+            segments = json.load(f)
+    except Exception as e:
+        print(f"\t*** [ERROR] could not load segments: {e}")
+    
+    # Initialize LLama model
+    print("\t*** Loading TopicAnalyzer...")
+    analyzer = TopicAnalyzer()
+
+    if benchmark_batch_size:
+        for bsize in [1, 4, 8, 16]:
+            print(f"\n\t=== Benchmarking batch_size={bsize} ===")
+            analyzer.classify_all_segments(segments, themes, batch_size=bsize) 
+    else:
+        print("\t*** Classifying each segment")
+
+        segments = analyzer.classify_all_segments(segments, themes)
+        
+        # Save output 
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(segments, f, indent=2, ensure_ascii=False)
+        
+        print(f"\t*** Classified segments saved to {output_path}")
+    
+    # Save failed segments for review
+    if analyzer.failed_segments:
+        with open("data/processed/test_classification/failed_segments.json", "w", encoding="utf-8") as f:
+            json.dump(analyzer.failed_segments, f, indent=2, ensure_ascii=False)
+        print(f"\t*** Saved {len(analyzer.failed_segments)} failed segments to failed_segments.json")
+
+
+if __name__ == "__main__":
+    test_classification()
+
+

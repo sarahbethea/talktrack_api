@@ -1,0 +1,12 @@
+torch 
+torchvision
+torchaudio
+openai-whisper
+faster-whisper
+pyannote.audio
+python-dotenv
+transformers
+accelerate # Huggingface library to optimize device mapping
+bitsandbytes  # For memory optimization
+sentencepiece  # Google's text tokenization library. For Llama tokenizer
+protobuf  # Google's data serialization format. Required for some tokenizers
