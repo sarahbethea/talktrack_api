@@ -25,7 +25,7 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str)
     print("\t*** Processing audio ***")
 
     # Transcribe
-    transcription_result = transcriber.transcribe(audio_path)
+    transcription_result = transcriber.transcribe(audio_path, word_timestamps=True)
 
     # Diarize
     diarization_result = diarizer.diarize_audio(audio_path)
@@ -47,6 +47,66 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str)
         "complete_transcript": complete_transcript
     }
 
+def build_speaker_segments_from_words(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
+    """
+    Assign individual words (with timestamps) to the correct speaker segment,
+    then build clean speaker-labeled blocks of text.
+
+    Args:
+        transcription_segments: list of segments from FasterWhisper with "words"
+        diarization_segments: list of diarized speaker segments
+
+    Returns:
+        list of dicts with speaker, start/end, text, and duration
+    """
+    print("\t*** Building speaker segments from word-level timestamps")
+
+    # Flatten all words from transcriber output into single list
+    all_words = []
+    for segment in transcription_segments:
+        if "words" in segment:
+            all_words.extend(segment["words"])
+    
+     # Assign each word to the best diarized speaker segment (based on overlap)
+    segment_word_map = {i: [] for i in range(len(diarization_segments))} # Create empty list for each diarized speaker segment
+
+    # Loop through words and match them with diarization segment
+    for word in all_words:
+        best_match = None
+        best_overlap = 0.0
+
+        for i, d in enumerate(diarization_segments):
+            overlap = compute_overlap(word["start"], word["end"], d["start"], d["end"])
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_match = i
+
+        if best_match is not None:
+            segment_word_map[best_match].append(word)
+
+    # Build the final speaker segments
+    speaker_segments = []
+    for i, d in enumerate(diarization_segments):
+        # Join words that matched with each segment
+        words = segment_word_map[i]
+        full_text = " ".join(w["word"] for w in words)
+
+        segment = {
+            "segment_id": i,
+            "start": d["start"],
+            "end": d["end"],
+            "start_formatted": d.get("start_formatted"),
+            "end_formatted": d.get("end_formatted"),
+            "speaker": d["speaker"],
+            "text": full_text,
+            "duration": round(d["end"] - d["start"], 2)
+        }
+
+        speaker_segments.append(segment)
+
+    return speaker_segments
+
+
 def extract_text_for_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
     """
     For each cleaned diarization segment, extract all transcribed text 
@@ -61,38 +121,88 @@ def extract_text_for_speaker_segments(transcription_segments: list[dict], diariz
     """
     print("\t*** Extracting text for speaker segments ***")
 
-    speaker_segments_with_text = []
+    # Track which transcript segments go with which diarization segment
+    segment_assignments = {i: [] for i in range(len(diarization_segments))}
+
+    for t in transcription_segments:
+        best_match_index = None
+        best_overlap = 0.0
+
+        for i, d in enumerate(diarization_segments):
+            overlap = compute_overlap(
+                t["start"], t["end"],
+                d["start"], d["end"]
+            )
+
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_match_index = i
+        
+        if best_match_index is not None:
+            segment_assignments[best_match_index].append(t["text"].strip())
     
-    for diar_segment in diarization_segments:
-        # Find all transcript segments that overlap with this speaker segment
-        overlapping_text = []
-        
-        for transcript_segment in transcription_segments:
-            # Check if transcript segment overlaps with speaker segment
-            if (transcript_segment["start"] < diar_segment["end"] and 
-                transcript_segment["end"] > diar_segment["start"]):
-                overlapping_text.append(transcript_segment["text"].strip())
-        
-        # Combine all text for this speaker segment
-        complete_text = " ".join(overlapping_text)
-        
-        # Create enhanced segment
+    # Build final speaker segments
+    speaker_segments_with_text = []
+    for i, diar_segment in enumerate(diarization_segments):
+        full_text = " ".join(segment_assignments[i])
+
         enhanced_segment = {
             "start": diar_segment["start"],
             "end": diar_segment["end"],
             "speaker": diar_segment["speaker"],
-            "text": complete_text,
+            "text": full_text,
             "duration": round(diar_segment["end"] - diar_segment["start"], 2)
         }
-        
-        # Add formatted timestamps if they exist
+
         if "start_formatted" in diar_segment:
             enhanced_segment["start_formatted"] = diar_segment["start_formatted"]
             enhanced_segment["end_formatted"] = diar_segment["end_formatted"]
-        
+
         speaker_segments_with_text.append(enhanced_segment)
-    
+
     return speaker_segments_with_text
+
+
+def compute_overlap(start1, end1, start2, end2):
+    """ Return the amount of temporal overlap between two intervals. """
+    overlap_start = max(start1, start2) # take later of two start times
+    overlap_end = min(end1, end2) # take earlier of two end times 
+    return max(0.0, overlap_end - overlap_start) # Return difference between start and end, use max to avoid negative values 
+
+
+
+    # speaker_segments_with_text = []
+    
+    # for diar_segment in diarization_segments:
+    #     # Find all transcript segments that overlap with this speaker segment
+    #     overlapping_text = []
+        
+    #     for transcript_segment in transcription_segments:
+    #         # Check if transcript segment overlaps with speaker segment
+    #         if (transcript_segment["start"] < diar_segment["end"] and 
+    #             transcript_segment["end"] > diar_segment["start"]):
+    #             overlapping_text.append(transcript_segment["text"].strip())
+        
+    #     # Combine all text for this speaker segment
+    #     complete_text = " ".join(overlapping_text)
+        
+    #     # Create enhanced segment
+    #     enhanced_segment = {
+    #         "start": diar_segment["start"],
+    #         "end": diar_segment["end"],
+    #         "speaker": diar_segment["speaker"],
+    #         "text": complete_text,
+    #         "duration": round(diar_segment["end"] - diar_segment["start"], 2)
+    #     }
+        
+    #     # Add formatted timestamps if they exist
+    #     if "start_formatted" in diar_segment:
+    #         enhanced_segment["start_formatted"] = diar_segment["start_formatted"]
+    #         enhanced_segment["end_formatted"] = diar_segment["end_formatted"]
+        
+    #     speaker_segments_with_text.append(enhanced_segment)
+    
+    # return speaker_segments_with_text
 
 
 def create_complete_transcript_by_speaker(speaker_segments_with_text: list[dict]) -> str:
@@ -160,4 +270,12 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
     
     return json_segments
 
+# if __name__ == "__main__":
+#     # from dotenv import load_dotenv
+#     # import os
+#     # load_dotenv()
+#     # token = os.getenv("HF_TOKEN")
+#     # transcriber = Transcriber(model_size="small") 
+#     # diarizer = Diarizer(hf_token=token)
 
+#     # process_audio(transcriber, diarizer, "data/raw/sample_1_9m.WAV")

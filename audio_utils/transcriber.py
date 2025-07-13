@@ -3,7 +3,7 @@ import torch
 import time
 
 class Transcriber:
-    def __init__(self, model_size="small"):
+    def __init__(self, model_size="medium"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.compute_type = "float16" if self.device == "cuda" else "int8"
 
@@ -12,10 +12,10 @@ class Transcriber:
         print("\t*** Model loaded successfully")
 
     
-    def transcribe(self, audio_path: str, word_timestamps=False) -> dict:
+    def transcribe(self, audio_path: str, word_timestamps: bool =True) -> dict:
         print(f"\t*** Transcribing: {audio_path}")
         start_time = time.time()
-        segments, _ = self.model.transcribe(audio_path, word_timestamps=word_timestamps)
+        segments, _ = self.model.transcribe(audio_path, word_timestamps=True)
         end_time = time.time()  
         inference_time = end_time - start_time
 
@@ -23,11 +23,23 @@ class Transcriber:
 
         segment_list = []
         for segment in segments:
-            segment_list.append({
-                "start": segment.start,
-                "end": segment.end,
+            segment_dict = {
+                "start": round(segment.start, 2),
+                "end": round(segment.end, 2),
                 "text": segment.text
-            })
+            }
+
+            if hasattr(segment, "words") and segment.words is not None:
+                segment_dict["words"] = [
+                    {
+                        "word": w.word,
+                        "start": round(w.start, 2),
+                        "end": round(w.end, 2)
+                    } 
+                    for w in segment.words
+                ]
+            
+            segment_list.append(segment_dict)
 
         # Remove timestampts and merge segments to generate complete text. 
         complete_text = " ".join([segment["text"].strip() for segment in segment_list])
