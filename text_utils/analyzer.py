@@ -88,7 +88,7 @@ class TopicAnalyzer:
             json_themes = json.loads(raw_response)
             for idx, theme in enumerate(json_themes):
                 theme["theme_id"] = idx
-            # Append themes with default options
+            # Append default themes (such as "interviewer", "none", etc.)
             json_themes.extend(get_default_themes())
         except json.JSONDecodeError as e:
             print(f"[ERROR] Could not parse raw_response: {e}")
@@ -134,7 +134,7 @@ class TopicAnalyzer:
             return_full_text=False
         )
 
-        # Parse JSON response (can add error handling)
+        # Parse JSON response 
         response_text = result[0]["generated_text"]
         try:
             parsed = json.loads(response_text)
