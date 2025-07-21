@@ -1,7 +1,7 @@
 # Run with:
 # python -m tests.test_classification
 
-from text_utils.analyzer import TopicAnalyzer
+from text_utils.analyzer import Analyzer
 from dotenv import load_dotenv
 from datetime import datetime
 import os
@@ -35,8 +35,8 @@ def test_classification(benchmark_batch_size=False):
         print(f"\t*** [ERROR] could not load segments: {e}")
     
     # Initialize LLama model
-    print("\t*** Loading TopicAnalyzer...")
-    analyzer = TopicAnalyzer()
+    print("\t*** Loading Analyzer...")
+    analyzer = Analyzer()
 
     if benchmark_batch_size:
         for bsize in [1, 4, 8, 16]:
