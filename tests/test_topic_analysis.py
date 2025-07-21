@@ -1,4 +1,4 @@
-from text_utils.analyzer import TopicAnalyzer
+from text_utils.analyzer import Analyzer
 import os
 import json
 from datetime import datetime
@@ -22,7 +22,7 @@ def test_topic_analysis():
 
     # Analyze topics
     print("\t*** Initializing topic analyzer...")
-    model = TopicAnalyzer()
+    model = Analyzer()
 
     print("\t*** Extracting themes...")
     result = model.extract_themes(transcript)

@@ -16,7 +16,7 @@ token = os.getenv("HF_TOKEN")
 
 
 
-class TopicAnalyzer:
+class Analyzer:
     def __init__(self, model_name="meta-llama/Llama-3.1-8B-Instruct"):
         """
         Initialize the topic analyzer with a local Llama model.

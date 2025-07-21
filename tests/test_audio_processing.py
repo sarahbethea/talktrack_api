@@ -14,11 +14,11 @@ import json
 import time
 
 # Config
-sample = "sample_1_9m"
+sample_name = "sample_1_9m"
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-audio_path = f"data/raw/{sample}.wav"
-json_output_path = f"data/processed/test_audio_processing/test_json_transcript_{sample}_{timestamp}.json"
-transcript_output_path = f"data/processed/test_audio_processing/complete_transcript_{sample}_{timestamp}.txt"
+sample_path = f"data/raw/{sample_name}.wav"
+output_dir = f"data/processed/test_audio_processing/{sample_name}_{timestamp}"
+os.makedirs(output_dir, exist_ok=True)
 
 # Load environment variables
 load_dotenv()
@@ -31,22 +31,26 @@ def test_audio_processing():
 
     # Process audio
     start_time = time.time()
-    result = process_audio(transcriber, diarizer, audio_path)
+    result = process_audio(transcriber, diarizer, sample_path)
     end_time = time.time()
     print(f"\t*** Audio processing completed in {end_time - start_time}s")
 
     json_transcript = result["json_transcript"]
     complete_transcript = result["complete_transcript"]
 
+    print(f"[DEBUG] Using timestamp: {timestamp}")
+    print(f"[DEBUG] Output directory: {output_dir}")
+
+
     # Save json output
-    os.makedirs(os.path.dirname(json_output_path), exist_ok=True)
+    json_output_path = os.path.join(output_dir, f"audio_processing_output.json")
     with open(json_output_path, "w", encoding="utf-8") as f:
         json.dump(json_transcript, f, indent=2, ensure_ascii=False)
 
     print(f"\t*** JSON transcript saved to {json_output_path}")
 
     # Save complete transcript for LLM 
-    os.makedirs(os.path.dirname(transcript_output_path), exist_ok=True)
+    transcript_output_path = os.path.join(output_dir, f"audio_processing_transcript.txt")
     with open(transcript_output_path, "w", encoding="utf-8") as f:
         f.write(complete_transcript)
 

@@ -4,16 +4,16 @@
 from audio_utils.transcriber import Transcriber
 from audio_utils.diarizer import Diarizer
 from pipeline.audio_processing import build_speaker_segments
-from text_utils.analyzer import TopicAnalyzer
+from text_utils.analyzer import Analyzer
 from dotenv import load_dotenv
 from datetime import datetime
 import os
 import json
 
 def test_full_pipeline():
-    print("\t\t*** Running full pipeline test...")
+    print("\t*** Running full pipeline test...")
     
-    # Setup
+    # Config
     sample_name = "sample_1_9m"
     sample_path = f"data/raw/{sample_name}.wav"
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -23,7 +23,7 @@ def test_full_pipeline():
     # Load models
     transcriber = Transcriber(model_size="medium")
     diarizer = Diarizer()
-    analyzer = TopicAnalyzer()
+    analyzer = Analyzer()
 
     # Transcribe
     transcribe_result = transcriber.transcribe(sample_path, word_timestamps=True)
