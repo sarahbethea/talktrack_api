@@ -38,10 +38,6 @@ def test_audio_processing():
     json_transcript = result["json_transcript"]
     complete_transcript = result["complete_transcript"]
 
-    print(f"[DEBUG] Using timestamp: {timestamp}")
-    print(f"[DEBUG] Output directory: {output_dir}")
-
-
     # Save json output
     json_output_path = os.path.join(output_dir, f"audio_processing_output.json")
     with open(json_output_path, "w", encoding="utf-8") as f:

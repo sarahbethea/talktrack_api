@@ -6,6 +6,7 @@ class Transcriber:
     def __init__(self, model_size="medium"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.compute_type = "float16" if self.device == "cuda" else "int8"
+        self.model_size = model_size
 
         print(f"\t*** Loading Faster Whisper (size: {model_size}, device: {self.device.upper()}, compute_type: {self.compute_type})")
         self.model = WhisperModel(model_size, device=self.device, compute_type=self.compute_type)
