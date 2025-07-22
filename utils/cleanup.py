@@ -6,6 +6,22 @@ import os, threading, time, json
 # Might not need this
 ensure_results_dir()
 
+shutdown_event = threading.Event()
+
+def schedule_cleanup(interval_seconds: int = 3600):
+    def _loop():
+        while not shutdown_event.is_set():
+            print("[CLEANUP] Running scheduled cleanup...")
+            cleanup_results_files()
+            cleanup_temp_files()
+            shutdown_event.wait(timeout=interval_seconds) # Pauses thread for interval_seconds
+            
+        print("[CLEANUP] Shutdown event triggered — exiting cleanup thread.")
+    
+    thread = threading.Thread(target=_loop, daemon=True) # Threads must be passed a callable (_loop)
+    thread.start()
+
+
 def cleanup_results_files():
     now = datetime.now(timezone.utc)
     for filename in os.listdir(RESULTS_DIR):
@@ -17,12 +33,17 @@ def cleanup_results_files():
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
-            created_at = datetime.fromisoformat(data.get("created_at", ""))
+            created_at_str = data.get("created_at")
+            if not created_at_str:
+                print(f"[CLEANUP] Skipping file with no timestamp: {file_path}")
+                continue  # ✅ skip files with no timestamp
+
+            created_at = datetime.fromisoformat(created_at_str)
             age = (now - created_at).total_seconds()
 
             if age > EXPIRATION_SECONDS:
                 os.remove(file_path)
-                print(f"[CLEANUP]Removed old results file: {file_path}")
+                print(f"[CLEANUP] Removed old results file: {file_path}")
 
         except Exception as e:
             print(f"[CLEANUP] Error reading {file_path}: {e}")
@@ -44,14 +65,3 @@ def cleanup_temp_files():
         except Exception as e:
             print(f"[CLEANUP] Error removing {file_path}: {e}")
 
-
-def schedule_cleanup(interval_seconds: int = 3600):
-    def _loop():
-        while True:
-            print("[CLEANUP] Running scheduled cleanup...")
-            cleanup_results_files()
-            cleanup_temp_files()
-            time.sleep(interval_seconds)
-    
-    thread = threading.Thread(target=_loop, daemon=True) # Threads must be passed a callable (_loop)
-    thread.start()

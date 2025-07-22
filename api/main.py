@@ -1,9 +1,21 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from api.routes import router as api_router
-from utils.cleanup import schedule_cleanup
+from utils.cleanup import schedule_cleanup, shutdown_event
 
-app = FastAPI(title="PP Extension API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Starting PP Extension API...")
+
+    # Start cleanup scheduler
+    schedule_cleanup(interval_seconds=600)  # every 10 minutes
+
+    yield # Run the app
+
+    # Shutdown logic
+    print("Shutting down PP Extension API...")
+    shutdown_event.set()
+
+
+app = FastAPI(title="PP Extension API", lifespan=lifespan)
 app.include_router(api_router)
-
-# Start cleanup scheduler (every 10 minutes = 600 seconds)
-schedule_cleanup(interval_seconds=600)
