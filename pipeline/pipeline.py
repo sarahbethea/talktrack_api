@@ -6,9 +6,8 @@ from pipeline.audio_processing import process_audio
 from text_utils.analyzer import Analyzer
 from dotenv import load_dotenv
 from datetime import datetime
-import os
-import time
-import json
+import os, time, json
+
 
 def run_pipeline(audio_path: str, job_id: str = "unknown") -> dict:
     print(f"[{job_id}] 🚀 Starting pipeline for {audio_path}")
