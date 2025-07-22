@@ -1,10 +1,10 @@
 # api/routes.py
 # This file defines the API routes for handling audio uploads and job management.
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks
-import uuid, os, json
 from .job_manager import run_pipeline_and_store, JOB_STATUS
-
-RESULTS_DIR = "results"
+from utils.cleanup import cleanup_old_results
+from config import RESULTS_DIR
+import uuid, os, json
 
 router = APIRouter()
 
@@ -43,8 +43,11 @@ def get_results(job_id: str):
         # return json read from results file 
         return json.load(f)
     
-    
 
+@router.post("/cleanup")
+def trigger_cleanup():
+    cleanup_old_results()
+    return {"status": "cleanup complete"}
 
 
 
