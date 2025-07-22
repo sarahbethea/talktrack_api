@@ -3,6 +3,7 @@ models/
 .env
 notes.txt
 to_trash/
+temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

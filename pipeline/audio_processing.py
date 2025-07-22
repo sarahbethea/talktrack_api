@@ -22,7 +22,7 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str)
             - "json_transcript": list of enriched speaker segments (for classification, markers)
             - "complete_transcript": a plain-text transcript formatted by speaker and timestamp
     """
-    print("\t*** Processing audio ***")
+    print("\t*** Processing audio")
 
     # Transcribe
     transcription_result = transcriber.transcribe(audio_path, word_timestamps=True)
@@ -188,7 +188,7 @@ def create_complete_transcript_by_speaker(speaker_segments_with_text: list[dict]
     Returns:
         str: A human-readable multi-line transcript, labeled and timestamped per segment.
     """
-    print("\t*** Creating complete speaker transcript ***")
+    print("\t*** Creating complete speaker transcript")
 
     transcript_parts = []
     
@@ -214,7 +214,7 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
     Returns:
         List[Dict]: Structured list of segments ready for classification/annotation.
     """
-    print("\t*** Generating structured JSON transcript ***")
+    print("\t*** Generating structured JSON transcript")
 
     json_segments = []
 
@@ -235,12 +235,6 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
     
     return json_segments
 
-# if __name__ == "__main__":
-#     # from dotenv import load_dotenv
-#     # import os
-#     # load_dotenv()
-#     # token = os.getenv("HF_TOKEN")
-#     # transcriber = Transcriber(model_size="small") 
-#     # diarizer = Diarizer(hf_token=token)
 
-#     # process_audio(transcriber, diarizer, "data/raw/sample_1_9m.WAV")
+if __name__ == "__main__":
+    process_audio(transcriber, diarizer, "data/raw/sample_1_9m.WAV")

@@ -25,7 +25,7 @@ router = APIRouter()
 # BackgroundTasks is a fastapi feature for running a function after the response is sent
 async def upload_audio(file: UploadFile = File(...), background_tasks: BackgroundTasks = None): 
     job_id = str(uuid.uuid4())
-    file_path = f"temp/{job_id}_{file.filename}"
+    file_path = f"temp/{job_id}_{file.filename}.wav"
     os.makedirs("temp", exist_ok=True)
 
     with open(file_path, "wb") as f: #wb means write binary, since audio files are binary not text

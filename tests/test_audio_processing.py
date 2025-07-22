@@ -52,6 +52,19 @@ def test_audio_processing():
 
     print(f"\t*** Complete transcript saved to {transcript_output_path}")
 
+def test_process_audio():
+    # Test the process_audio function with a sample audio file
+    transcriber = Transcriber(model_size="medium")
+    diarizer = Diarizer(hf_token=token)
+    result = process_audio(transcriber, diarizer, sample_path)
+
+    assert result is not None
+    assert "json_transcript" in result
+    assert "complete_transcript" in result
+    assert isinstance(result["json_transcript"], list)
+    assert isinstance(result["complete_transcript"], str)   
+    print("\t*** process_audio test passed!")
 
 if __name__ == "__main__":
     test_audio_processing()
+    test_process_audio()

@@ -8,8 +8,10 @@ def run_pipeline_and_store(audio_path: str, job_id: str):
     try:
         JOB_STATUS[job_id] = "processing"
         result = run_pipeline(audio_path)
-        JOB_STATUS[job_id] = "complete"
         JOB_RESULTS[job_id] = result
+        print(f"[DEBUG] Stored JOB_RESULTS[{job_id}] = {result}")  
+
+        JOB_STATUS[job_id] = "complete"
     except Exception as e:
         JOB_STATUS[job_id] = "failed"
         JOB_RESULTS[job_id] = {"error": str(e)}

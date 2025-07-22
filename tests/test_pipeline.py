@@ -27,7 +27,6 @@ def test_full_pipeline(save_intermediates=False):
         "total_seconds": 0.0
     }
 
-
     print("\t*** Running full pipeline test...")
     start_time = time.time()
 
