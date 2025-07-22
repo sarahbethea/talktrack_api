@@ -1,19 +1,10 @@
-# Asynchronous job handling
-
-# POST /upload-audio
-# → save audio, start background job
-# ← return job_id = abc123
-
-# GET /status/abc123
-# → {"status": "processing", "progress": 27}
-
-# GET /results/abc123
-# → return full results when ready
-
-
+# api/routes.py
+# This file defines the API routes for handling audio uploads and job management.
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks
-import uuid, os
-from .job_manager import run_pipeline_and_store, JOB_STATUS, JOB_RESULTS
+import uuid, os, json
+from .job_manager import run_pipeline_and_store, JOB_STATUS
+
+RESULTS_DIR = "results"
 
 router = APIRouter()
 
@@ -35,12 +26,25 @@ async def upload_audio(file: UploadFile = File(...), background_tasks: Backgroun
 
     return {"job_id": job_id} # send job id back to client immediately 
 
+
 @router.get("/status/{job_id}")
 def get_status(job_id: str):
     return {"status": JOB_STATUS.get(job_id, "not_found")}
 
+
 @router.get("/results/{job_id}")
 def get_results(job_id: str):
-    if job_id not in JOB_RESULTS:
+    results_path = os.path.join(RESULTS_DIR, f"{job_id}.json")
+
+    if not os.path.exists(results_path):
         return {"error": "not ready"}
-    return JOB_RESULTS[job_id]
+    
+    with open(results_path, "r", encoding="utf-8") as f:
+        # return json read from results file 
+        return json.load(f)
+    
+    
+
+
+
+

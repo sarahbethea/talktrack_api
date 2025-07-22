@@ -3,7 +3,7 @@
 
 from audio_utils.transcriber import Transcriber
 from audio_utils.diarizer import Diarizer
-from pipeline.audio_processing import build_speaker_segments
+from pipeline.audio_processing import build_speaker_segments, process_audio
 from text_utils.analyzer import Analyzer
 from dotenv import load_dotenv
 from datetime import datetime

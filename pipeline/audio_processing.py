@@ -237,4 +237,4 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
 
 
 if __name__ == "__main__":
-    process_audio(transcriber, diarizer, "data/raw/sample_1_9m.WAV")
+   pass
