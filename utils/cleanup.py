@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from config import EXPIRATION_SECONDS, RESULTS_DIR, TEMP_DIR
 from utils.storage import ensure_results_dir
 import os, threading, time, json
+import logging
 
 # Might not need this
 ensure_results_dir()
@@ -11,13 +12,13 @@ shutdown_event = threading.Event()
 def schedule_cleanup(interval_seconds: int = 3600):
     def _loop():
         while not shutdown_event.is_set():
-            print("[CLEANUP] Running scheduled cleanup...")
+            logging.info("[CLEANUP] Running scheduled cleanup...")
             cleanup_results_files()
             cleanup_temp_files()
             shutdown_event.wait(timeout=interval_seconds) # Pauses thread for interval_seconds
-            
-        print("[CLEANUP] Shutdown event triggered — exiting cleanup thread.")
-    
+
+        logging.info("[CLEANUP] Shutdown event triggered — exiting cleanup thread.")
+
     thread = threading.Thread(target=_loop, daemon=True) # Threads must be passed a callable (_loop)
     thread.start()
 
@@ -35,7 +36,7 @@ def cleanup_results_files():
             
             created_at_str = data.get("created_at")
             if not created_at_str:
-                print(f"[CLEANUP] Skipping file with no timestamp: {file_path}")
+                logging.info(f"[CLEANUP] Skipping file with no timestamp: {file_path}")
                 continue  # ✅ skip files with no timestamp
 
             created_at = datetime.fromisoformat(created_at_str)
@@ -43,10 +44,10 @@ def cleanup_results_files():
 
             if age > EXPIRATION_SECONDS:
                 os.remove(file_path)
-                print(f"[CLEANUP] Removed old results file: {file_path}")
+                logging.info(f"[CLEANUP] Removed old results file: {file_path}")
 
         except Exception as e:
-            print(f"[CLEANUP] Error reading {file_path}: {e}")
+            logging.exception(f"[CLEANUP] Error reading {file_path}: {e}")
 
 
 def cleanup_temp_files():
@@ -60,8 +61,8 @@ def cleanup_temp_files():
 
             if age > EXPIRATION_SECONDS:
                 os.remove(file_path)
-                print(f"[CLEANUP] Removed old temp file: {file_path}")
+                logging.info(f"[CLEANUP] Removed old temp file: {file_path}")
 
         except Exception as e:
-            print(f"[CLEANUP] Error removing {file_path}: {e}")
+            logging.exception(f"[CLEANUP] Error removing {file_path}: {e}")
 
