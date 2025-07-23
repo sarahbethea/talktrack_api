@@ -5,6 +5,7 @@ notes.txt
 to_trash/
 temp/
 results/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
