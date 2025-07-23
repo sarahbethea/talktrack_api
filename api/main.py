@@ -7,7 +7,6 @@ import logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting PP Extension API...")
     setup_logging()
     logging.info("PP Extension API started")
 
@@ -17,7 +16,7 @@ async def lifespan(app: FastAPI):
     yield # Run the app
 
     # Shutdown logic
-    print("Shutting down PP Extension API...")
+    logging.info("Shutting down PP Extension API...")
     shutdown_event.set()
 
 

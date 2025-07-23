@@ -1,7 +1,7 @@
 from audio_utils.transcriber import Transcriber
 from audio_utils.diarizer import Diarizer
 
-def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str) -> dict:
+def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str, job_id: str) -> dict:
     """
     Run transcription and speaker diarization on an audio file, and format results
     for downstream processing (e.g., summarization, annotation, Premiere integration).
@@ -25,19 +25,22 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str)
     print("\t*** Processing audio")
 
     # Transcribe
+    update_progress(job_id, "transcribing", 5)
     transcription_result = transcriber.transcribe(audio_path, word_timestamps=True)
 
     # Diarize
+    update_progress(job_id, "diarizing", 10)
     diarization_result = diarizer.diarize_audio(audio_path)
 
     # Combine them
+    update_progress(job_id, "segmenting", 30)
     speaker_segments = build_speaker_segments(
         transcription_result["segments"],
         diarization_result["segments"]  # These are your cleaned segments
     )
 
     # Create complete transcript
-    complete_transcript = create_complete_transcript_by_speaker(speaker_segments)
+    complete_transcript = build_speaker_transcript(speaker_segments)
 
     # Create JSON formatted transcript
     json_segments = generate_json_segments(speaker_segments)
@@ -170,7 +173,7 @@ def compute_overlap(start1, end1, start2, end2):
     return max(0.0, overlap_end - overlap_start) # Return difference between start and end, use max to avoid negative values 
 
 
-def create_complete_transcript_by_speaker(speaker_segments_with_text: list[dict]) -> str:
+def build_speaker_transcript(speaker_segments_with_text: list[dict]) -> str:
     """
     Generate a full, readable transcript from speaker-segmented text data.
 
@@ -234,6 +237,11 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
         json_segments.append(seg)
     
     return json_segments
+
+
+def update_progress(job_id: str, stage: str, percent: int):
+    from api.job_manager import JOB_PROGRESS
+    JOB_PROGRESS[job_id] = {"stage": stage, "percent": percent}
 
 
 if __name__ == "__main__":
