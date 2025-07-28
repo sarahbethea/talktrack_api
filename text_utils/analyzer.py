@@ -1,5 +1,5 @@
 # Topic extraction logic
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
 from text_utils.default_themes import get_default_themes
 import json
@@ -15,7 +15,6 @@ load_dotenv()
 token = os.getenv("HF_TOKEN")
 
 
-
 class Analyzer:
     def __init__(self, model_name="meta-llama/Llama-3.1-8B-Instruct"):
         """
@@ -28,12 +27,14 @@ class Analyzer:
         
         tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=token)
 
+        quant_config = BitsAndBytesConfig(load_in_8bit=True)
+
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.float16,
             device_map="auto",
-            load_in_8bit=True,
-            use_auth_token=token
+            quantization_config=quant_config,
+            token=token
         )
 
         self.generator = pipeline(

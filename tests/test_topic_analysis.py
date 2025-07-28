@@ -7,7 +7,7 @@ from datetime import datetime
 def test_topic_analysis():
     sample_name = "sample_1_9m"
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    transcript_path = "data/processed/test_audio_processing/complete_transcript_sample_1_9m.txt"
+    transcript_path = "data/processed/test_audio_processing/audio_processing_transcript.txt"
     parsed_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}_{timestamp}.txt"
     json_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}_{timestamp}.json"
         
