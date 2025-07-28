@@ -1,8 +1,9 @@
 # api/routes.py
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Depends
 from .job_manager import run_pipeline_and_store, JOB_STATUS
 from utils.cleanup import cleanup_results_files, cleanup_temp_files
 from utils.progress import JOB_PROGRESS
+from utils.auth import verify_api_key
 from config import RESULTS_DIR
 import uuid, os, json
 
@@ -10,7 +11,13 @@ router = APIRouter()
 
 @router.post("/upload-audio") 
 # BackgroundTasks is a fastapi feature for running a function after the response is sent
-async def upload_audio(file: UploadFile = File(...), background_tasks: BackgroundTasks = None): 
+async def upload_audio(
+    file: UploadFile = File(...), 
+    background_tasks: BackgroundTasks = None, 
+    user: dict = Depends(verify_api_key)
+): 
+    print(f"User authenticated: {user['user_id']} with plan {user['plan']}")
+
     job_id = str(uuid.uuid4())
     file_path = f"temp/{job_id}_{file.filename}.wav"
     os.makedirs("temp", exist_ok=True)
