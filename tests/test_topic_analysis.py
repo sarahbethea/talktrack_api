@@ -1,36 +1,58 @@
-from text_utils.analyzer import Analyzer
-import os
-import json
+# Run with:
+#   python -m tests.test_topic_analysis
+# or:
+#   pytest -q tests/test_topic_analysis.py
+
+"""
+Topic analysis test.
+
+- Loads a plain-text transcript produced by the audio processing test.
+- Runs Analyzer.extract_themes to produce parsed + JSON themes.
+- Writes both human-readable and JSON outputs to a timestamped folder.
+"""
+
 from datetime import datetime
+from pathlib import Path
+import logging
+import json
 
+from text_utils.analyzer import Analyzer
 
-def test_topic_analysis():
-    sample_name = "sample_1_9m"
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    transcript_path = "data/processed/test_audio_processing/audio_processing_transcript.txt"
-    parsed_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}_{timestamp}.txt"
-    json_output_path = f"data/processed/test_topic_analysis/generated_themes_{sample_name}_{timestamp}.json"
-        
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# --- Config ---
+SAMPLE_NAME = "sample_1_9m"
+ROOT = Path(__file__).resolve().parents[1]  # repo root
+TRANSCRIPT_PATH = ROOT / "data" / "processed" / "test_audio_processing" / "audio_processing_transcript.txt"
+
+TIMESTAMP = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+OUT_DIR = ROOT / "data" / "processed" / "test_topic_analysis"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+PARSED_OUTPUT_PATH = OUT_DIR / f"generated_themes_{SAMPLE_NAME}_{TIMESTAMP}.txt"
+JSON_OUTPUT_PATH = OUT_DIR / f"generated_themes_{SAMPLE_NAME}_{TIMESTAMP}.json"
+
+def test_topic_analysis():  
+    """Analyze topics from TRANSCRIPT_PATH and write results to OUT_DIR."""      
     # Read the transcript file
     try:
-        with open(transcript_path, "r", encoding="utf-8") as f:
+        with open(TRANSCRIPT_PATH, "r", encoding="utf-8") as f:
             transcript = f.read()
-        print(f"Transcript loaded: {len(transcript)} characters")
+        logger.info("Transcript loaded: %d characters", len(transcript))
     except FileNotFoundError:
-        print(f"Error: Could not find file {transcript_path}")
+        logger.error("Error: Could not find file %s", TRANSCRIPT_PATH)
         return
 
     # Analyze topics
-    print("\t*** Initializing topic analyzer...")
+    logger.info("Initializing topic analyzer...")
     model = Analyzer()
 
-    print("\t*** Extracting themes...")
+    logger.info("Extracting themes...")
     result = model.extract_themes(transcript)
-
-    print(f"\t*** Found {len(result['parsed_themes'])} themes")
+    logger.info("Found %d themes", len(result['parsed_themes']))
 
     # Write results to output_path
-    with open(parsed_output_path, "w", encoding="utf-8") as f:
+    with open(PARSED_OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write("TOPIC ANALYSIS RESULTS:\n\n")
 
         f.write("PARSED THEMES:\n")
@@ -42,10 +64,10 @@ def test_topic_analysis():
             f.write(f"   Keywords: {', '.join(theme.get('keywords', []))}\n")
 
 
-    with open(json_output_path, "w", encoding="utf-8") as f:
+    with open(JSON_OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(result["json_themes"], f, indent=2)
 
-    print(f"\t*** Results written to: {json_output_path}")
+    logger.info("Results written to: %s", JSON_OUTPUT_PATH)
 
 if __name__ == "__main__":
     test_topic_analysis()

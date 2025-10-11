@@ -1,7 +1,17 @@
+"""
+Utilities to align transcription (words/timestamps) with diarized speaker segments,
+and to produce both human-readable and JSON-ready outputs.
+"""
+
 from audio_utils.transcriber import Transcriber
 from audio_utils.diarizer import Diarizer
+from utils.progress import update_progress 
+import logging
+from typing import Any
 
-def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str, job_id: str) -> dict:
+logger = logging.getLogger(__name__)
+
+def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str, job_id: str) -> dict[str, Any]:
     """
     Run transcription and speaker diarization on an audio file, and format results
     for downstream processing (e.g., summarization, annotation, Premiere integration).
@@ -22,7 +32,7 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str,
             - "json_transcript": list of enriched speaker segments (for classification, markers)
             - "complete_transcript": a plain-text transcript formatted by speaker and timestamp
     """
-    print("\t*** Processing audio")
+    logger.info("[%s] Processing audio", job_id)
 
     # Transcribe
     update_progress(job_id, "transcribing", 5)
@@ -36,21 +46,22 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str,
     update_progress(job_id, "segmenting", 30)
     speaker_segments = build_speaker_segments(
         transcription_result["segments"],
-        diarization_result["segments"]  # These are your cleaned segments
+        diarization_result["segments"],  # These are your cleaned segments
+        job_id
     )
 
     # Create complete transcript
-    complete_transcript = build_speaker_transcript(speaker_segments)
+    complete_transcript = build_speaker_transcript(speaker_segments, job_id)
 
     # Create JSON formatted transcript
-    json_segments = generate_json_segments(speaker_segments)
+    json_segments = generate_json_segments(speaker_segments, job_id)
 
     return {
         "json_transcript": json_segments,
         "complete_transcript": complete_transcript
     }
 
-def build_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
+def build_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict], job_id: str) -> list[dict]:
     """
     Assign individual words (with timestamps) to the correct speaker segment,
     then build clean speaker-labeled blocks of text.
@@ -62,7 +73,7 @@ def build_speaker_segments(transcription_segments: list[dict], diarization_segme
     Returns:
         list of dicts with speaker, start/end, text, and duration
     """
-    print("\t*** Building speaker segments from word-level timestamps")
+    logger.info("[%s] Building speaker segments from word-level timestamps", job_id)
 
     # Flatten all words from transcriber output into single list
     all_words = []
@@ -110,7 +121,7 @@ def build_speaker_segments(transcription_segments: list[dict], diarization_segme
     return speaker_segments
 
 
-def extract_text_for_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
+def extract_text_for_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict], job_id: str) -> list[dict]:
     """
     For each cleaned diarization segment, extract all transcribed text 
     that was spoken during that time period.
@@ -122,7 +133,7 @@ def extract_text_for_speaker_segments(transcription_segments: list[dict], diariz
     Returns:
         List of segments with speaker, timestamps, and complete text
     """
-    print("\t*** Extracting text for speaker segments ***")
+    logger.info("[%s] Extracting text for speaker segments", job_id)
 
     # Track which transcript segments go with which diarization segment
     segment_assignments = {i: [] for i in range(len(diarization_segments))}
@@ -173,7 +184,7 @@ def compute_overlap(start1, end1, start2, end2):
     return max(0.0, overlap_end - overlap_start) # Return difference between start and end, use max to avoid negative values 
 
 
-def build_speaker_transcript(speaker_segments_with_text: list[dict]) -> str:
+def build_speaker_transcript(speaker_segments_with_text: list[dict], job_id: str) -> str:
     """
     Generate a full, readable transcript from speaker-segmented text data.
 
@@ -191,10 +202,10 @@ def build_speaker_transcript(speaker_segments_with_text: list[dict]) -> str:
     Returns:
         str: A human-readable multi-line transcript, labeled and timestamped per segment.
     """
-    print("\t*** Creating complete speaker transcript")
+    logger.info("[%s] Creating complete speaker transcript", job_id)
 
-    transcript_parts = []
-    
+    transcript_parts: list[str] = []
+
     for segment in speaker_segments_with_text:
         speaker_label = segment["speaker"]
         start_time = segment["start_formatted"]
@@ -207,7 +218,7 @@ def build_speaker_transcript(speaker_segments_with_text: list[dict]) -> str:
     return "\n\n".join(transcript_parts)
 
 
-def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]:
+def generate_json_segments(speaker_segments_with_text: list[dict], job_id: str) -> list[dict]:
     """
     Generate structured JSON segments output from enhanced speaker segments.
 
@@ -217,9 +228,9 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
     Returns:
         List[Dict]: Structured list of segments ready for classification/annotation.
     """
-    print("\t*** Generating structured JSON transcript")
+    logger.info("[%s] Generating structured JSON segments", job_id)
 
-    json_segments = []
+    json_segments: list[dict] = []
 
     for i, segment in enumerate(speaker_segments_with_text):
         seg = {
@@ -237,12 +248,3 @@ def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]
         json_segments.append(seg)
     
     return json_segments
-
-
-def update_progress(job_id: str, stage: str, percent: int):
-    from api.job_manager import JOB_PROGRESS
-    JOB_PROGRESS[job_id] = {"stage": stage, "percent": percent}
-
-
-if __name__ == "__main__":
-   pass
