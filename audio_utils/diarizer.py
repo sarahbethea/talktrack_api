@@ -1,20 +1,45 @@
+"""
+Thin wrapper around pyannote.audio for speaker diarization.
+
+Responsibilities:
+- Load the pyannote pipeline (optionally on GPU).
+- Run diarization and return raw + cleaned segments.
+- Provide small utilities to merge/filter segments and format timestamps.
+"""
+
+from typing import Any
 from pyannote.audio import Pipeline
 from dotenv import load_dotenv
 import time
 import torch
 import os
+import logging
 
 # Load from .env to access Huggingface access token
 load_dotenv()
 token = os.getenv("HF_TOKEN")
 
+logger = logging.getLogger(__name__)
 
 class Diarizer:
-    def __init__(self, model_name="pyannote/speaker-diarization-3.1", hf_token=token):
+    """
+    Speaker diarization helper.
+
+    Args:
+        model_name: Hugging Face model id for pyannote diarization.
+        hf_token:   Hugging Face access token (falls back to HF_TOKEN env).
+    """
+    def __init__(self, model_name: str ="pyannote/speaker-diarization-3.1", hf_token: str | None =token):
+        if hf_token is None:
+            load_dotenv()  
+            hf_token = os.getenv("HF_TOKEN")
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"\t*** Loading diarization model: {model_name}")
-        self.pipeline = Pipeline.from_pretrained(model_name, use_auth_token=token)
-        print("\t*** Model loaded successfully")
+        self.model_name = model_name
+
+        logger.info("Loading diarization model: %s (device: %s)", model_name, self.device)
+        self.pipeline = Pipeline.from_pretrained(model_name, use_auth_token=hf_token)
+        logger.info("Model loaded successfully")
 
         # Move to GPU if available
         if self.device == "cuda":
@@ -23,26 +48,26 @@ class Diarizer:
 
     def diarize_audio(self, file_path: str) -> dict:
         """
-        Diarizes audio using pyannote.audio
-        
+        Run diarization on an audio file.
+
         Args:
-            model (pyannote.audio): pretrained diarization model. 
-            file_path (str): Path to audio file.
+            file_path: Path to the audio file.
 
         Returns:
-
+            dict with:
+                - "segments": cleaned list[dict] of speaker segments
+                - "raw_segments": raw list[dict] from pyannote
+                - "inference_time": float seconds (rounded)
         """
-        print("\t*** Running inference with pyannote.audio")
+        logger.info("Running diarization inference with pyannote.audio on %s", file_path)
 
-    
         # Run inference
         start_time = time.time()
         result = self.pipeline(file_path)
         end_time = time.time()
         inference_time = end_time - start_time
 
-        print(f"\t*** Diarization complete. Inference time: {inference_time}s")
-
+        logger.info("Diarization complete in %.2fs", inference_time)
 
         # Extract raw segments
         raw_segments = []
@@ -64,21 +89,19 @@ class Diarizer:
     
 
     def _move_pipeline_to_cuda(self):
-        """
-        Move all internal models inside pyannote pipeline to GPU.
-        """
+        """ (Unused helper) Move internal models inside the pyannote pipeline to GPU. """
         for name, model in self.pipeline.model.items():
             self.pipeline.model[name] = model.to(torch.device("cuda"))
-        print("\t*** Pipeline models moved to CUDA")
+        logger.debug("Pipeline models moved to CUDA")
 
 
     def _clean_diarization_output(
             self, 
-            segments: list, 
+            segments: list[dict[str, Any]], 
             min_duration: float = 3.0, 
             max_gap: float = 5.0, 
             format_timestamps: bool = True
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Clean up diarization segments with multiple passes of merging and filtering.
         
@@ -91,7 +114,7 @@ class Diarizer:
         Returns:
             list[dict]: Fully cleaned segments
         """
-        print("\t*** Cleaning up diarization output")
+        logger.debug("Cleaning diarization output: %d raw segments", len(segments) if segments else 0)
 
         if not segments:
             return segments
@@ -117,22 +140,23 @@ class Diarizer:
         return final_segments
     
 
-    def _merge_consecutive_speakers(self, segments: list, max_gap: float = 5.0) -> list[dict]:
+    def _merge_consecutive_speakers(
+            self, segments: list[dict[str, Any]], max_gap: float = 5.0
+    ) -> list[dict[str, Any]]:
         """
-        Merge consecutive segments from the same speaker.
-        
+        Merge consecutive segments from the same speaker when the temporal gap is small.
+
         Args:
-            segments (list[dict]): Segments sorted by start time
-            max_gap (float): Maximum gap between segments to merge (seconds).
-                Gaps of max_gap seconds or less between the same speaker get merged. 
-        
+            segments: Segments sorted by start time.
+            max_gap: Merge when gap between same-speaker segments ≤ max_gap seconds.
+
         Returns:
-            list[dict]: Segments with consecutive same-speaker segments merged
+            Segments with consecutive same-speaker regions merged.
         """
         if not segments:
             return segments
         
-        merged_segments = []
+        merged_segments: list[dict[str, Any]] = []
         current_segment = segments[0].copy()
         
         for next_segment in segments[1:]:
@@ -153,25 +177,26 @@ class Diarizer:
         return merged_segments
     
     
-    def _filter_short_segments(self, segments: list[dict], min_duration: float = 3.0) -> list[dict]:
+    def _filter_short_segments(
+            self, segments: list[dict[str, Any]], min_duration: float = 3.0
+    ) -> list[dict[str, Any]]:
         """
-        Remove segments shorter than minimum duration.
-        
+        Remove segments shorter than the minimum duration.
+
         Args:
-            segments (list): Input segments
-            min_duration (float): Minimum segment duration to keep (seconds).
-                Segments shorter than min_duration get filtered out. 
-        
+            segments: Input segments.
+            min_duration: Minimum duration to keep (seconds).
+
         Returns:
-            list[dict]: Segments with short ones filtered out
+            Segments with short ones removed.
         """
-        filtered_segments = []
+        filtered_segments: list[dict[str, Any]] = []
         for segment in segments:
             duration = segment["end"] - segment["start"]
             if duration >= min_duration:
                 filtered_segments.append(segment)
             else:
-                print(f"Filtered out short segment: {duration:.2f}s - {segment['speaker']}")
+                logger.debug("Filtered out short segment: %.2fs (%s)", duration, segment.get("speaker"))
         
         return filtered_segments
 

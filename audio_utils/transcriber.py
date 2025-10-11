@@ -1,30 +1,69 @@
+"""
+Thin wrapper around faster-whisper for transcription.
+
+Responsibilities:
+- Load a Whisper model (CPU/GPU with appropriate compute_type).
+- Transcribe audio and return segments + full text + inference time.
+"""
 from faster_whisper import WhisperModel
 import torch
 import time
+import logging
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 class Transcriber:
+    """
+    Speech-to-text helper using faster-whisper.
+
+    Args:
+        model_size: Whisper model size string (e.g., "small", "medium", "large-v3").
+                    Defaults to "medium".
+    """
     def __init__(self, model_size="medium"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Common faster-whisper choices: float16 on GPU, int8 on CPU (fast, compact)
         self.compute_type = "float16" if self.device == "cuda" else "int8"
         self.model_size = model_size
 
-        print(f"\t*** Loading Faster Whisper (size: {model_size}, device: {self.device.upper()}, compute_type: {self.compute_type})")
-        self.model = WhisperModel(model_size, device=self.device, compute_type=self.compute_type)
-        print("\t*** Model loaded successfully")
+        logger.info(
+            "Loading Faster Whisper (size: %s, device: %s, compute_type: %s)", 
+            model_size, self.device.upper(), self.compute_type
+        )
+        self.model = WhisperModel(
+            model_size, 
+            device=self.device, 
+            compute_type=self.compute_type,
+        )
+        logger.info("Model loaded successfully")
 
     
-    def transcribe(self, audio_path: str, word_timestamps: bool =True) -> dict:
-        print(f"\t*** Transcribing: {audio_path}")
+    def transcribe(self, audio_path: str, word_timestamps: bool =True) -> dict[str, Any]:
+        """
+        Transcribe an audio file.
+
+        Args:
+            audio_path: Path to the audio file.
+            word_timestamps: If True, include per-word timestamps when available.
+
+        Returns:
+            dict with:
+                - "segments": list of segment dicts (start, end, text, optional words[])
+                - "complete_text": concatenated transcript text
+                - "inference_time": float seconds (rounded)
+        """
+        logger.info("Transcribing: %s (word_timestamps=%s)", audio_path, word_timestamps)
         start_time = time.time()
-        segments, _ = self.model.transcribe(audio_path, word_timestamps=True)
+        segments, _ = self.model.transcribe(audio_path, word_timestamps=word_timestamps)
         end_time = time.time()  
         inference_time = end_time - start_time
 
-        print(f"\t*** Transcription complete. Inference time: {inference_time}")
+        logger.info("Transcription complete. Inference time: %.2fs", inference_time)
 
-        segment_list = []
+        segment_list: list[dict[str, Any]] = []
         for segment in segments:
-            segment_dict = {
+            segment_dict: dict[str, Any] = {
                 "start": round(segment.start, 2),
                 "end": round(segment.end, 2),
                 "text": segment.text
@@ -42,7 +81,7 @@ class Transcriber:
             
             segment_list.append(segment_dict)
 
-        # Remove timestampts and merge segments to generate complete text. 
+        # Remove timestamps and merge segments to generate complete text. 
         complete_text = " ".join([segment["text"].strip() for segment in segment_list])
 
         return {
