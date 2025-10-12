@@ -1,4 +1,3 @@
-# api/routes.py
 """
 FastAPI routes for TalkTrack API.
 

@@ -1,7 +1,15 @@
-# Topic extraction logic
+"""
+Topic extraction and segment classification using a local LLM (Hugging Face Transformers).
+
+Responsibilities:
+- Load a causal LM + tokenizer.
+- Extract high-level themes from a full transcript.
+- Classify individual segments into those themes and generate short summaries.
+"""
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
 from text_utils.default_themes import get_default_themes
+import logging
 import json
 import time
 import torch
@@ -9,6 +17,7 @@ import textwrap
 import os
 import re #regex module
 
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -43,8 +52,7 @@ class Analyzer:
             tokenizer=tokenizer
         )
 
-        print("\t*** Model loaded successfully")
-    
+        logger.info("Model loaded successfully")
 
     def extract_themes(self, transcript) -> dict:
         """
@@ -76,8 +84,8 @@ class Analyzer:
         end_time = time.time()
         inference_time = round(end_time - start_time, 2)
 
-        print(f"\t*** Inference completed in {inference_time}s")
-        
+        logger.info("Inference completed in %d", inference_time)
+
         # Extract generated text
         raw_response = result[0]['generated_text']
         
@@ -92,9 +100,9 @@ class Analyzer:
             # Append default themes (such as "interviewer", "none", etc.)
             json_themes.extend(get_default_themes())
         except json.JSONDecodeError as e:
-            print(f"[ERROR] Could not parse raw_response: {e}")
-            json_themes = [] 
-                
+            logger.error("Could not parse raw_response: %s", e)
+            json_themes = []
+
         return {
             "parsed_themes": parsed_themes,
             "json_themes": json_themes,
@@ -141,7 +149,7 @@ class Analyzer:
             parsed = json.loads(response_text)
             return parsed
         except json.JSONDecodeError:
-            print(f"[ERROR] Failed to parse JSON:\n{response_text}")
+            logger.error("Failed to parse JSON:\n%s", response_text)
             return {"theme_title": "Uncategorized", "summary": "Could not parse model response."}
         
 
@@ -158,7 +166,7 @@ class Analyzer:
         Returns:
             list of dict: The same segments, with added fields for "theme_title" and "summary".
         """
-        print(f"\t*** Classifying {len(segments)} segments in batches of {batch_size}")
+        logger.info("Classifying %d segments in batches of %d", len(segments), batch_size)
 
         # Initialize stats dict and failed segments list for tracking
         stats = {
@@ -213,7 +221,7 @@ class Analyzer:
                     return_full_text=False
                 )
             except Exception as e:
-                print(f"[ERROR] Failed to run batch {i // batch_size}: {e}")
+                logger.error("Failed to run batch %d: %s", i // batch_size, e)
                 stats["batch_failures"] += 1
                 failed_segments.extend(batch_segments)
                 continue
@@ -230,7 +238,7 @@ class Analyzer:
                     summary = parsed.get("summary", "")
                     stats["successful"] += 1
                 except Exception:
-                    print(f"\t*** [!] Parsing failed for segment {i+j}, retrying individually")
+                    logger.warning("Parsing failed for segment %d, retrying individually", i+j)
                     stats["retried"] += 1
 
                     # If parsing fails, call classify_segment() for that segment
@@ -251,22 +259,22 @@ class Analyzer:
                 segment["summary"] = summary
                 segment["theme_id"] = theme_id
 
-                print(f"\t*** [{i + j + 1}/{len(segments)}] Theme: {matched_title} (ID: {theme_id})")
-            
+                logger.info("Classified segment %d: Theme: %s (ID: %d)", i + j + 1, matched_title, theme_id)
+
             batch_duration = round(time.time() - batch_start, 2)
-            print(f"\t*** Batch {i // batch_size + 1} processed in {batch_duration}s")
+            logger.info("Batch %d processed in %d seconds", i // batch_size + 1, batch_duration)
 
         total_duration = round(time.time() - start_time, 2)
-        print(f"\t*** All segments classified in {total_duration}s")
+        logger.info("All segments classified in %d seconds", total_duration)
 
         # Print stats summary
-        print("\t*** Classification Summary:")
-        print(f"  Total segments       : {stats['total']}")
-        print(f"  Parsed successfully  : {stats['successful']}")
-        print(f"  Retried              : {stats['retried']}")
-        print(f"  Failed after retry   : {stats['failed']}")
-        print(f"  Batch failures       : {stats['batch_failures']}")
-        print(f"  Total time           : {total_duration}s")
+        logger.info("Classification Summary:")
+        logger.info("  Total segments       : %d", stats['total'])
+        logger.info("  Parsed successfully  : %d", stats['successful'])
+        logger.info("  Retried              : %d", stats['retried'])
+        logger.info("  Failed after retry   : %d", stats['failed'])
+        logger.info("  Batch failures       : %d", stats['batch_failures'])
+        logger.info("  Total time           : %d seconds", total_duration)
 
         self.last_classification_stats = stats
         self.failed_segments = failed_segments
@@ -284,14 +292,14 @@ class Analyzer:
                 themes = json.loads(json_str)
                 return themes
             else:
-                print("No JSON found in response")
+                logger.warning("No JSON found in response")
                 return []
         except json.JSONDecodeError as e:
-            print(f"JSON parsing error: {e}")
-            print(f"Response text: {response_text[:500]}...")
+            logger.error("JSON parsing error: %s", e)
+            logger.error("Response text: %s...", response_text[:500])
             return []
         except Exception as e:
-            print(f"Unexpected error parsing themes: {e}")
+            logger.error("Unexpected error parsing themes: %s", e)
             return []
         
 
