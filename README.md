@@ -15,13 +15,13 @@ TalkTrack API is the FastAPI-based backend powering the TalkTrack Premiere Pro P
 ## Tech Stack
 | Category | Technology |
 |-----------|-----------|
-| Framework     | FastAPI    | 
-| Speech Processing     | faster-whisper    | 
-| Speaker Diarization   | Transformers (Llama 3.1 8B Instruct)  | 
-| Environment     | Python 3.10+, CUDA (Opt.)    | 
-| Auth     | API key-based    |
-| Logging     | Python `logging` + rotating log file    |
-| Testing     | Modular test clients under `/tests`    |
+| **Framework**     | FastAPI    | 
+| **Speech Processing**     | faster-whisper    | 
+| **Speaker Diarization**   | Transformers (Llama 3.1 8B Instruct)  | 
+| **Environment**     | Python 3.10+, CUDA (Opt.)    | 
+| **Auth**     | API key-based    |
+| **Logging**     | Python `logging` + rotating log file    |
+| **Testing**     | Modular test clients under `/tests`    |
 
 ## Running Locally
 1. Clone the repository
@@ -59,12 +59,15 @@ uvicorn api.main:app --reload
 
 
 ## Pipeline stages
-Stage	Module	Description
-Transcription	audio_utils/transcriber.py	Generates text + word timestamps via Faster-Whisper
-Diarization	audio_utils/diarizer.py	Identifies speakers and merges/filters segments
-Alignment	pipeline/audio_processing.py	Aligns transcript and speaker segments
-Topic Analysis	text_utils/analyzer.py	Extracts and classifies themes using a local Llama model
-Export	utils/storage.py, utils/progress.py	Saves structured JSON + job metadata
+| Stage | Module | Description |
+|-------|---------|-------------|
+| **Transcription** | `audio_utils/transcriber.py` | Converts audio to text with `faster-whisper`, including word-level timestamps. |
+| **Diarization** | `audio_utils/diarizer.py` | Separates speakers using `pyannote.audio` and cleans/merges overlapping segments. |
+| **Alignment** | `pipeline/audio_processing.py` | Aligns diarized speaker segments with transcribed words for precise timestamps. |
+| **Topic Extraction** | `text_utils/analyzer.py` | Uses a local LLaMA model to identify key discussion themes in the transcript. |
+| **Classification** | `text_utils/analyzer.py` | Classifies each speaker segment into the extracted themes and generates summaries. |
+| **Storage & Export** | `utils/storage.py` / `utils/progress.py` | Saves processed JSON data and manages job progress tracking and cleanup. |
+
 
 ## Project Status
 This is a functional MVP used with the TalkTrack Premiere Pro plugin.
