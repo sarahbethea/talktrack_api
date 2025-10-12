@@ -1,7 +1,7 @@
 # TalkTrack API 
 *Backend for AI-powered interview analysis and automated editing.*
 
-TalkTrack API is the FastAPI-based backend powering the TalkTrack Premiere Pro Plugin, an AI system that analyzes interview footage, detects speakers, extracts key themes, and returns structured annotations for automated editing inside Adobe Premiere Pro.
+TalkTrack API is the FastAPI-based backend powering the TalkTrack Premiere Pro Plugin, an AI system that analyzes interview footage, detects speakers, extracts key themes, and returns structured annotations for automated editing inside Adobe Premiere Pro with the [TalkTrack Plugin](https://github.com/sarahbethea/talktrack_plugin).
 
 ## Features
 - **Speaker Diarization** — Uses `pyannote.audio` to separate interviewer/interviewee voices.
@@ -25,26 +25,26 @@ TalkTrack API is the FastAPI-based backend powering the TalkTrack Premiere Pro P
 | **Testing**     | Modular test clients under `/tests`    |
 
 ## Running Locally
-1. Clone the repository
+1. **Clone the repository**
 ``` bash
 git clone https://github.com/yourusername/talktrack_api.git
 cd talktrack_api
 ```
-2. Create a virtual environment
+2. **Create a virtual environment**
 ``` bash
 python -m venv venv
 source venv/bin/activate     # macOS/Linux
 venv\Scripts\activate        # Windows
 ```
-3. Install dependencies
+3. **Install dependencies**
 ``` bash
 pip install -r requirements.txt
 ```
-4. Set environment variables
+4. **Set environment variables**
 ``` bash
 HF_TOKEN=your_huggingface_token
 ```
-5. Run the API
+5. **Run the API**
 ``` bash
 uvicorn api.main:app --reload
 ```
