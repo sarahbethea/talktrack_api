@@ -58,7 +58,7 @@ def run_pipeline(audio_path: str, job_id: str = "unknown") -> dict[str, Any]:
         update_progress(job_id, "segmenting", 30)
         speaker_segments = build_speaker_segments(
             transcription_result["segments"],
-            diarization_result["segments"]  
+            diarization_result["segments"],
         )
 
         segments = generate_json_segments(speaker_segments)

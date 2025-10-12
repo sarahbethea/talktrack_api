@@ -47,21 +47,20 @@ def process_audio(transcriber: Transcriber, diarizer: Diarizer, audio_path: str,
     speaker_segments = build_speaker_segments(
         transcription_result["segments"],
         diarization_result["segments"],  # These are your cleaned segments
-        job_id
     )
 
     # Create complete transcript
-    complete_transcript = build_speaker_transcript(speaker_segments, job_id)
+    complete_transcript = build_speaker_transcript(speaker_segments)
 
     # Create JSON formatted transcript
-    json_segments = generate_json_segments(speaker_segments, job_id)
+    json_segments = generate_json_segments(speaker_segments)
 
     return {
         "json_transcript": json_segments,
         "complete_transcript": complete_transcript
     }
 
-def build_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict], job_id: str) -> list[dict]:
+def build_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
     """
     Assign individual words (with timestamps) to the correct speaker segment,
     then build clean speaker-labeled blocks of text.
@@ -73,7 +72,7 @@ def build_speaker_segments(transcription_segments: list[dict], diarization_segme
     Returns:
         list of dicts with speaker, start/end, text, and duration
     """
-    logger.info("[%s] Building speaker segments from word-level timestamps", job_id)
+    logger.info("Building speaker segments from word-level timestamps")
 
     # Flatten all words from transcriber output into single list
     all_words = []
@@ -121,7 +120,7 @@ def build_speaker_segments(transcription_segments: list[dict], diarization_segme
     return speaker_segments
 
 
-def extract_text_for_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict], job_id: str) -> list[dict]:
+def extract_text_for_speaker_segments(transcription_segments: list[dict], diarization_segments: list[dict]) -> list[dict]:
     """
     For each cleaned diarization segment, extract all transcribed text 
     that was spoken during that time period.
@@ -133,7 +132,7 @@ def extract_text_for_speaker_segments(transcription_segments: list[dict], diariz
     Returns:
         List of segments with speaker, timestamps, and complete text
     """
-    logger.info("[%s] Extracting text for speaker segments", job_id)
+    logger.info("Extracting text for speaker segments")
 
     # Track which transcript segments go with which diarization segment
     segment_assignments = {i: [] for i in range(len(diarization_segments))}
@@ -184,7 +183,7 @@ def compute_overlap(start1, end1, start2, end2):
     return max(0.0, overlap_end - overlap_start) # Return difference between start and end, use max to avoid negative values 
 
 
-def build_speaker_transcript(speaker_segments_with_text: list[dict], job_id: str) -> str:
+def build_speaker_transcript(speaker_segments_with_text: list[dict]) -> str:
     """
     Generate a full, readable transcript from speaker-segmented text data.
 
@@ -202,7 +201,7 @@ def build_speaker_transcript(speaker_segments_with_text: list[dict], job_id: str
     Returns:
         str: A human-readable multi-line transcript, labeled and timestamped per segment.
     """
-    logger.info("[%s] Creating complete speaker transcript", job_id)
+    logger.info("Creating complete speaker transcript")
 
     transcript_parts: list[str] = []
 
@@ -218,7 +217,7 @@ def build_speaker_transcript(speaker_segments_with_text: list[dict], job_id: str
     return "\n\n".join(transcript_parts)
 
 
-def generate_json_segments(speaker_segments_with_text: list[dict], job_id: str) -> list[dict]:
+def generate_json_segments(speaker_segments_with_text: list[dict]) -> list[dict]:
     """
     Generate structured JSON segments output from enhanced speaker segments.
 
@@ -228,7 +227,7 @@ def generate_json_segments(speaker_segments_with_text: list[dict], job_id: str) 
     Returns:
         List[Dict]: Structured list of segments ready for classification/annotation.
     """
-    logger.info("[%s] Generating structured JSON segments", job_id)
+    logger.info("Generating structured JSON segments")
 
     json_segments: list[dict] = []
 

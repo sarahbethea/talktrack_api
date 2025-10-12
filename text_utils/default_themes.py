@@ -1,3 +1,14 @@
+"""
+Built-in fallback themes used across the pipeline.
+
+These are appended to model-extracted themes and use **reserved negative IDs**:
+  - None         -> -1  (silence/noise/unintelligible)
+  - Introduction -> -2  (interviewee introduces themselves)
+  - Interviewer  -> -3  (questions/prompts from interviewer)
+
+Call `get_default_themes()` to obtain a copy suitable for merging with generated themes.
+"""
+from typing import Any
 DEFAULT_THEMES = [
     {
         "title": "None",
@@ -19,7 +30,7 @@ DEFAULT_THEMES = [
     }
 ]
 
-
+# Single source of truth for reserved IDs (negative to avoid clashing with model-assigned IDs that start at 0+)
 THEME_ID_MAP = {
     "None": -1,
     "Introduction": -2,
@@ -27,7 +38,13 @@ THEME_ID_MAP = {
 }
 
 
-def get_default_themes() -> list[dict]:
+def get_default_themes() -> list[dict[str, Any]]:
+    """
+    Return a fresh list of default theme dicts with canonical negative IDs.
+
+    This function ensures `theme_id` values match THEME_ID_MAP even if someone
+    edited DEFAULT_THEMES above. Use this when extending model-generated themes.
+    """
     return [
         {
             **theme,

@@ -8,9 +8,16 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from api.routes import router as api_router
 from utils.cleanup import schedule_cleanup, shutdown_event
-from utils.logging_config import setup_logging
+from utils.logging_config import configure_logging
+from dotenv import load_dotenv
+from config import LOGS_DIR
 import logging
+import os
 
+# Get environment variables from .env
+load_dotenv()  
+
+configure_logging(LOGS_DIR)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
@@ -21,8 +28,7 @@ async def lifespan(app: FastAPI):
       - start periodic cleanup,
       - ensure cleanup thread is signaled on shutdown.
     """
-    setup_logging()
-    logging.info("Talktrack API started")
+    logger.info("Talktrack API started")
 
     # Start cleanup scheduler (every 10 minutes)
     schedule_cleanup(interval_seconds=600)  # every 10 minutes
@@ -31,7 +37,7 @@ async def lifespan(app: FastAPI):
     yield 
 
     # Shutdown logic
-    logging.info("Shutting down Talktrack API...")
+    logger.info("Shutting down Talktrack API...")
     shutdown_event.set()
 
 
