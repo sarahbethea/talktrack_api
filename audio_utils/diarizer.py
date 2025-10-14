@@ -7,9 +7,10 @@ Responsibilities:
 - Provide small utilities to merge/filter segments and format timestamps.
 """
 
-from typing import Any
+from typing import Any, Optional
 from pyannote.audio import Pipeline
 from dotenv import load_dotenv
+from huggingface_hub import login
 import time
 import torch
 import os
@@ -29,13 +30,26 @@ class Diarizer:
         model_name: Hugging Face model id for pyannote diarization.
         hf_token:   Hugging Face access token (falls back to HF_TOKEN env).
     """
-    def __init__(self, model_name: str ="pyannote/speaker-diarization-3.1", hf_token: str | None =token):
-        if hf_token is None:
-            load_dotenv()  
-            hf_token = os.getenv("HF_TOKEN")
+    def __init__(self, model_name: str ="pyannote/speaker-diarization-3.1", hf_token: Optional[str] = None):
+        hf_token = (
+            hf_token
+            or os.getenv("HF_TOKEN")
+            or os.getenv("HUGGINGFACE_HUB_TOKEN")
+        )
+
+        if not hf_token:
+            # You *must* pass a token for gated pyannote models in a fresh container
+            # (no cached login). Raise a clear error now rather than a 403 later.
+            raise RuntimeError(
+                "Missing HF token. Set HF_TOKEN or HUGGINGFACE_HUB_TOKEN in the environment."
+            )
+        
+        try:
+            login(token=hf_token)  # no other kwargs
+        except Exception as e:
+            logger.warning("HF login failed (continuing because we pass token directly): %s", e)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model_name = model_name
 
         logger.info("Loading diarization model: %s (device: %s)", model_name, self.device)
         self.pipeline = Pipeline.from_pretrained(model_name, use_auth_token=hf_token)

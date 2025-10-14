@@ -76,7 +76,7 @@ def test_full_pipeline(save_intermediates=False):
     }
 
     # Align words to speaker segments 
-    speaker_segments = build_speaker_segments(transcription_result["segments"], diarization_result["segments"], job_id="test_job")
+    speaker_segments = build_speaker_segments(transcription_result["segments"], diarization_result["segments"])
 
     # Analyze and extract themes
     full_transcript = transcription_result["complete_text"]

@@ -1,9 +1,7 @@
-torch 
-torchvision
-torchaudio
+numpy<2
 openai-whisper
-faster-whisper
-pyannote.audio
+ctranslate2==4.4.0
+faster-whisper==1.0.3
 python-dotenv
 transformers
 accelerate # Huggingface library to optimize device mapping
@@ -12,3 +10,6 @@ sentencepiece  # Google's text tokenization library. For Llama tokenizer
 protobuf  # Google's data serialization format. Required for some tokenizers
 fastapi
 uvicorn
+python-multipart
+pyannote.audio
+huggingface_hub

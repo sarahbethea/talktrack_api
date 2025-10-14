@@ -41,7 +41,7 @@ token = os.getenv("HF_TOKEN")
 def test_diarization():
     """Run diarization on SAMPLE and write cleaned segments to OUTPUT_PATH."""
     # Load model
-    diarizer = Diarizer(hf_token=token)
+    diarizer = Diarizer()
 
     logger.info("Using device %s", diarizer.device.upper())
 

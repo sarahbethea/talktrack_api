@@ -5,6 +5,7 @@ Run locally:
     uvicorn api.main:app --reload
 """
 from fastapi import FastAPI
+import uvicorn
 from contextlib import asynccontextmanager
 from api.routes import router as api_router
 from utils.cleanup import schedule_cleanup, shutdown_event
@@ -43,3 +44,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Talktrack API", lifespan=lifespan)
 app.include_router(api_router)
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
