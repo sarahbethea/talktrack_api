@@ -10,6 +10,7 @@ import torch
 import time
 import logging
 from typing import Any
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class Transcriber:
             model_size, 
             device=self.device, 
             compute_type=self.compute_type,
+            download_root=os.getenv("WHISPER_CACHE", "/cache/whisper")
         )
         logger.info("Model loaded successfully")
 
