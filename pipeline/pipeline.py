@@ -26,7 +26,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def run_pipeline(audio_path: str, job_id: str = "unknown") -> dict[str, Any]:
+def run_pipeline(audio_path: str, job_id: str, transcriber, diarizer, analyzer) -> dict[str, Any]:
     """Run the full analysis pipeline and return segments, themes, and metrics."""
     logger.info("[%s] 🚀 Starting pipeline for %s", job_id, audio_path)
     metrics: dict[str, float] = {}
@@ -34,11 +34,11 @@ def run_pipeline(audio_path: str, job_id: str = "unknown") -> dict[str, Any]:
     try:
         total_start = time.time()
 
-        # Load models
-        update_progress(job_id, "loading_models", 5)
-        transcriber = Transcriber()
-        diarizer = Diarizer()
-        analyzer = Analyzer()
+        # # Load models
+        # update_progress(job_id, "loading_models", 5)
+        # transcriber = Transcriber()
+        # diarizer = Diarizer()
+        # analyzer = Analyzer()
 
         # Transcribe
         update_progress(job_id, "transcribing", 15)

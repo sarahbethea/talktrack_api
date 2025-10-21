@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Maps job_id -> "queued" | "processing" | "complete" | "failed"
 JOB_STATUS = {}
 
-def run_pipeline_and_store(audio_path: str, job_id: str) -> None:
+def run_pipeline_and_store(audio_path: str, job_id: str, transcriber, diarizer, analyzer) -> None:
     """
     Execute the pipeline for a single job and store outputs to disk.
 
@@ -34,7 +34,7 @@ def run_pipeline_and_store(audio_path: str, job_id: str) -> None:
         update_progress(job_id, "starting", 0)
         logging.info(f"[{job_id}] 🚀 Job started")
 
-        results = run_pipeline(audio_path, job_id)
+        results = run_pipeline(audio_path, job_id, transcriber, diarizer, analyzer)
 
         JOB_STATUS[job_id] = "complete"
         update_progress(job_id, "complete", 100)
