@@ -22,7 +22,8 @@ from fastapi import (
     UploadFile, 
     File, 
     BackgroundTasks, 
-    Depends
+    Depends,
+    Request
 )
 
 from .job_manager import run_pipeline_and_store, JOB_STATUS
@@ -36,6 +37,7 @@ router = APIRouter()
 
 @router.post("/upload-audio") 
 async def upload_audio(
+    request: Request,
     file: UploadFile = File(...), 
     background_tasks: BackgroundTasks = None, 
     user: dict = Depends(verify_api_key),
@@ -55,7 +57,16 @@ async def upload_audio(
     with open(file_path, "wb") as f: 
         f.write(await file.read()) 
 
-    background_tasks.add_task(run_pipeline_and_store, file_path, job_id) 
+    # Get pre-loaded models from app state
+    models = request.app.state
+    background_tasks.add_task(
+        run_pipeline_and_store, 
+        file_path, 
+        job_id, 
+        models.transcriber, 
+        models.diarizer, 
+        models.analyzer
+    ) 
 
     return {"job_id": job_id} # send job id back to client immediately 
 

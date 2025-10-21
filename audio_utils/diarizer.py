@@ -11,6 +11,8 @@ from typing import Any, Optional
 from pyannote.audio import Pipeline
 from dotenv import load_dotenv
 from huggingface_hub import login
+import torchaudio
+import tempfile
 import time
 import torch
 import os
@@ -75,11 +77,20 @@ class Diarizer:
         """
         logger.info("Running diarization inference with pyannote.audio on %s", file_path)
 
+        # Normalize input to WAV mono 16kHz (pyannote requirement)
+        norm_path = self._to_wav_mono16k(file_path)
+
         # Run inference
-        start_time = time.time()
-        result = self.pipeline(file_path)
-        end_time = time.time()
-        inference_time = end_time - start_time
+        try:
+            start_time = time.time()
+            result = self.pipeline(norm_path)
+            end_time = time.time()
+            inference_time = end_time - start_time
+        finally:
+            try:
+                os.remove(norm_path)
+            except OSError:
+                pass
 
         logger.info("Diarization complete in %.2fs", inference_time)
 
@@ -100,6 +111,28 @@ class Diarizer:
             "raw_segments": raw_segments,
             "inference_time": round(inference_time, 2)
         }
+    
+    def _to_wav_mono16k(self, in_path: str) -> str:
+        """Return a temp WAV file (mono, 16 kHz) path for a given audio file."""
+        wav_fd, out_path = tempfile.mkstemp(prefix="tt_diar_", suffix=".wav")
+        os.close(wav_fd)  # we'll write it with torchaudio.save
+
+        # Load (let torchaudio handle mp3/m4a/wav)
+        wav, sr = torchaudio.load(in_path)  # shape: [channels, num_samples]
+
+        # Mono
+        if wav.shape[0] > 1:
+            wav = torch.mean(wav, dim=0, keepdim=True)  # [1, N]
+
+        # Resample -> 16k if needed
+        target_sr = 16000
+        if sr != target_sr:
+            resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=target_sr)
+            wav = resampler(wav)
+
+        # Save as PCM WAV
+        torchaudio.save(out_path, wav, sample_rate=target_sr, encoding="PCM_S", bits_per_sample=16)
+        return out_path
     
 
     def _move_pipeline_to_cuda(self):

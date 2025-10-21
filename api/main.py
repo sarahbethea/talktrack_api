@@ -8,11 +8,15 @@ from fastapi import FastAPI
 import uvicorn
 from contextlib import asynccontextmanager
 from api.routes import router as api_router
+from audio_utils.transcriber import Transcriber
+from audio_utils.diarizer import Diarizer
+from text_utils.analyzer import Analyzer
 from utils.cleanup import schedule_cleanup, shutdown_event
 from utils.logging_config import configure_logging
 from dotenv import load_dotenv
 from config import LOGS_DIR
 import logging
+
 import os
 
 # Get environment variables from .env
@@ -33,6 +37,15 @@ async def lifespan(app: FastAPI):
 
     # Start cleanup scheduler (every 10 minutes)
     schedule_cleanup(interval_seconds=600)  # every 10 minutes
+
+    # Load models
+    logger.info("Loading transcriber...")
+    app.state.transcriber = Transcriber()
+    logger.info("Loading diarizer...")
+    app.state.diarizer   = Diarizer()
+    logger.info("Loading analyzer...")
+    app.state.analyzer   = Analyzer()
+    logger.info("All models loaded successfully.")
 
     # Hand control to FastAPI to run the app
     yield 
