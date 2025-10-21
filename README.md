@@ -3,9 +3,9 @@
 
 TalkTrack API is the FastAPI-based backend powering the TalkTrack Premiere Pro Plugin, an AI system that analyzes interview footage, detects speakers, extracts key themes, and returns structured annotations for automated editing inside Adobe Premiere Pro with the [TalkTrack Plugin](https://github.com/sarahbethea/talktrack_plugin).
 
-
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://YOUR-DEMO-URL.example)
-**Note:** This demo is self-hosted. I keep the machine on and the app running, but there may be short downtime windows.
+### 🎬 Live Demo
+> **Try the API demo:** [talktrack.app](https://talktrack.app)  
+> *(Self-hosted — the server runs continuously on my local machine, but may occasionally be offline.)*
 
 ## Features
 - **Speaker Diarization** — Uses `pyannote.audio` to separate interviewer/interviewee voices.
